@@ -1,4 +1,5 @@
 name = "Client Tweaks"
+id = "rtk0c.DST_ClientTweaks" --unofficial field
 author = "rtk0c"
 description = "Various client tweaks"
 version = "1.0"

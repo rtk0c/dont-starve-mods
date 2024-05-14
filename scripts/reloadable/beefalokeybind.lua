@@ -27,15 +27,13 @@ local function FindFood()
   end
 end
 
-BeefaloKeybindsFuncs = {
-
-IsInGameplay = function()
+function EXPORTS.IsInGameplay()
   return ThePlayer ~= nil and TheFrontEnd:GetActiveScreen().name == "HUD"
   and not ThePlayer.HUD:IsCraftingOpen()
   and not ThePlayer.HUD:HasInputFocus()
-end,
+end
 
-MountOrDis = function()
+function EXPORTS.MountOrDis()
   local beefalo = FindBeefalo()
   if beefalo ~= nil then
     local controller = ThePlayer.components.playercontroller
@@ -61,7 +59,7 @@ MountOrDis = function()
       -- TODO(rtk0c) 2024-05-13 6:42PM
       --             commenting this out, i.e. only start action on server, but don't play pre-action animation, solves the Movement Predication bug
       --             how tf does this work???
-      -- controller:DoAction(act)
+      controller:DoAction(act)
     else
       local act2 = BufferedAction(ThePlayer, ThePlayer, ACTIONS.DISMOUNT)
       local pos = act2:GetActionPoint() or ThePlayer:GetPosition()
@@ -69,9 +67,9 @@ MountOrDis = function()
       controller:DoAction(act2)
     end
   end
-end,
+end
 
-Feed = function()
+function EXPORTS.Feed()
   local food = FindFood()
   local beefalo = FindBeefalo()
   if food ~= nil and beefalo ~= nil then
@@ -80,6 +78,4 @@ Feed = function()
     SendRPCToServer(RPC.ControllerUseItemOnSceneFromInvTile, act.action.code, food, act.target, act.action.mod_name)
     ThePlayer.components.playercontroller:DoAction(act)
   end
-end,
-
-}
+end
