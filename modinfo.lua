@@ -18,10 +18,21 @@ client_only_mod = true
 icon_atlas = "modicon.xml"
 icon = "modicon.tex"
 
+
+
+-------- Non-user-facing configuration options --------
+-- These needs a reset (running modmain.lua again) to take effect
+
+-- Expose development utilities
+opt_dev_mode = true
+
+
+
 local keys = {
   "None",
   "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-  "LSHIFT", "LALT", "LCTRL", "TAB", "BACKSPACE", "PERIOD", "SLASH", "TILDE", "Mouse Button 4", "Mouse Button 5"
+  "LSHIFT", "LALT", "LCTRL", "TAB", "BACKSPACE", "PERIOD", "SLASH", "TILDE",
+  "Mouse Button 4", "Mouse Button 5"
 }
 
 configuration_options =
