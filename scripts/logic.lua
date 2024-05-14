@@ -41,7 +41,22 @@ MountOrDis = function()
     local controller = ThePlayer.components.playercontroller
     if not ThePlayer.replica.rider:IsRiding() then
       local act = BufferedAction(ThePlayer, beefalo, ACTIONS.MOUNT, nil)
-      local pos = act:GetActionPoint() or ThePlayer:GetPosition()  
+
+      -- Debug print BufferedAction
+      -- Investigation: compared to the one generated just by manual right clicking, this is exactly the same???
+      --   how is there the action getting stuck bug then
+      --[[
+      local inspect = require "inspect"
+      local act_doer = act.doer
+      local act_t = act.target
+      act.doer = nil
+      act.target = nil
+      print(inspect(act, 4))
+      act.doer = act_doer
+      act.target = act_t
+      --]]
+
+      local pos = act:GetActionPoint() or ThePlayer:GetPosition()
       SendRPCToServer(RPC.RightClick, act.action.code, pos.x, pos.z, act.target, act.rotation, true, nil, nil, act.action.mod_name);
       -- TODO(rtk0c) 2024-05-13 6:42PM
       --             commenting this out, i.e. only start action on server, but don't play pre-action animation, solves the Movement Predication bug
