@@ -12,46 +12,37 @@ for _, modfile in ipairs(modfiles_reloadable) do
 end
 GLOBAL.EXPORTS = old_global_exports
 
-local beefaloKey = GetModConfigData("key")
-if beefaloKey ~= "None" and beefaloKey ~= "Mouse Button 4" and beefaloKey ~= "Mouse Button 5" then
-  local keybind = GLOBAL["KEY_"..beefaloKey]
-  GLOBAL.TheInput:AddKeyDownHandler(keybind, SafeWrapper(function()
-    if not IsInGameplay() then return end
-    MountOrDis()
-  end))
-else
-  local mouse = nil
-  if beefaloKey == "Mouse Button 4" then
-    mouse = 1005
-  else
-    mouse = 1006
-  end
-  GLOBAL.TheInput:AddMouseButtonHandler(SafeWrapper(function (button, down, x, y)
-    if not IsInGameplay() then return end
-    if button == mouse and down then
-      MountOrDis()
+local function InstallMouseKeybind(mouse_keycode, callback)
+  GLOBAL.TheInput:AddMouseButtonHandler(function (button, down, x, y)
+    if button == mouse_keycode and down then
+      callback(button, down, x, y)
     end
-  end))
+  end)
 end
 
-local feedKey = GetModConfigData("feed")
-if feedKey ~= "None" and feedKey ~= "Mouse Button 4" and feedKey ~= "Mouse Button 5" then
-  local keybind2 = GLOBAL["KEY_"..feedKey]
-  GLOBAL.TheInput:AddKeyDownHandler(keybind2, SafeWrapper(function()
+local function InstallKeybind(config_key, callback)
+  if config_key == "None" then return end
+
+  if config_key == "Mouse Button 4" then
+    return InstallMouseKeybind(1005, callback)
+  elseif config_key == "Mouse Button 5" then
+    return InstallMouseKeybind(1006, callback)
+  end
+
+  local keycode = GLOBAL["KEY_"..config_key]
+  GLOBAL.TheInput:AddKeyDownHandler(keycode, callback)
+end
+
+InstallKeybind(
+  GetModConfigData("key"),
+  function()
+    if not IsInGameplay() then return end
+    MountOrDis()
+  end)
+
+InstallKeybind(
+  GetModConfigData("feed"),
+  function()
     if not IsInGameplay() then return end
     Feed()
-  end))
-else
-  local mouse2 = nil
-  if feedKey == "Mouse Button 4" then
-    mouse2 = 1005
-  else
-    mouse2 = 1006
-  end
-  GLOBAL.TheInput:AddMouseButtonHandler(SafeWrapper(function(button, down, x, y)
-    if not IsInGameplay() then return end
-    if button == mouse2 and down then
-      Feed()
-    end
-  end))
-end
+  end)
