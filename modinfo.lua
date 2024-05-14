@@ -25,6 +25,9 @@ icon = "modicon.tex"
 
 -- Expose development utilities
 opt_dev_mode = true
+-- If true, wraps game-facing callbacks in an error handler that merely logs the error without crashing
+-- Disable this in production environment, or want to test mod in "real world conditions"
+opt_safe_mode = true
 
 
 

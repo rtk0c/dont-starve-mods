@@ -1,8 +1,5 @@
--- Disable this in production environment, or want to test mod in "real world conditions"
-USE_SAFE_MODE = true
-
 function SafeWrapper(func, default_return)
-  if not USE_SAFE_MODE then
+  if not modinfo.opt_safe_mode then
     return func
   end
 
@@ -11,7 +8,7 @@ function SafeWrapper(func, default_return)
     if status then return res end
 
     -- Handle error
-    print("[error] ["..modinfo.name.."] "..res)
+    print("["..modinfo.name.."] [error] "..res)
     return default_return
   end
 end
