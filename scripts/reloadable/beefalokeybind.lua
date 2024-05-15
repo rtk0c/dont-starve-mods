@@ -39,26 +39,34 @@ function EXPORTS.MountOrDis()
     local controller = ThePlayer.components.playercontroller
     if not ThePlayer.replica.rider:IsRiding() then
       local act = BufferedAction(ThePlayer, beefalo, ACTIONS.MOUNT, nil)
-
-      -- Debug print BufferedAction
-      -- Investigation: compared to the one generated just by manual right clicking, this is exactly the same???
-      --   how is there the action getting stuck bug then
-      --[[
-      local inspect = require "inspect"
-      local act_doer = act.doer
-      local act_t = act.target
-      act.doer = nil
-      act.target = nil
-      print(inspect(act, 4))
-      act.doer = act_doer
-      act.target = act_t
-      --]]
-
       local pos = act:GetActionPoint() or ThePlayer:GetPosition()
-      SendRPCToServer(RPC.RightClick, act.action.code, pos.x, pos.z, act.target, act.rotation, true, nil, nil, act.action.mod_name);
-      -- TODO(rtk0c) 2024-05-13 6:42PM
-      --             commenting this out, i.e. only start action on server, but don't play pre-action animation, solves the Movement Predication bug
-      --             how tf does this work???
+
+      -- It appears that PlayerController.locomotor exists when movement prediction is one, and nil when it is off.
+      -- According to vanilla's code, when movement prediction is on, the action RPC needs to be one frame later than the movement prediction RPC.
+      --
+      --[[ scripts/components/playercontroller.lua
+function PlayerController:RemoteBufferedAction(buffaction)
+  if not self.ismastersim and buffaction.preview_cb ~= nil then
+    --Delay one frame if we just sent movement prediction so that
+    --this RPC arrives a frame after the movement prediction RPC
+    if self.predictionsent then
+        self.inst:DoTaskInTime(0, DoRemoteBufferedAction, self, buffaction)
+    else
+        DoRemoteBufferedAction(self.inst, self, buffaction)
+    end
+  end
+end
+      --]]
+      --
+      -- Vanilla does this delay by putting the SendRPCToServer() call into a callback stored in BufferedAction.preview_cb. This callback is processed somewhere down the chain, and it will finally reach PlayerControll:RemoteBufferedAction() above.
+      -- See relevant code at the bottom of PlayerController:OnRightClick()
+      if controller.locomotor == nil then
+        SendRPCToServer(RPC.RightClick, act.action.code, pos.x, pos.z, act.target, act.rotation, true, nil, nil, act.action.mod_name)
+      else
+        act.preview_cb = function()
+          SendRPCToServer(RPC.RightClick, act.action.code, pos.x, pos.z, act.target, act.rotation, true, nil, nil, act.action.mod_name)
+        end
+      end
       controller:DoAction(act)
     else
       local act2 = BufferedAction(ThePlayer, ThePlayer, ACTIONS.DISMOUNT)
