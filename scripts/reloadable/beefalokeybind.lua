@@ -29,22 +29,17 @@ end
 
 function EXPORTS.IsInGameplay()
   return ThePlayer ~= nil and TheFrontEnd:GetActiveScreen().name == "HUD"
-  and not ThePlayer.HUD:IsCraftingOpen()
-  and not ThePlayer.HUD:HasInputFocus()
+    and not ThePlayer.HUD:IsCraftingOpen()
+    and not ThePlayer.HUD:HasInputFocus()
 end
 
-function EXPORTS.MountOrDis()
-  local beefalo = FindBeefalo()
-  if beefalo ~= nil then
-    local controller = ThePlayer.components.playercontroller
-    if not ThePlayer.replica.rider:IsRiding() then
-      local act = BufferedAction(ThePlayer, beefalo, ACTIONS.MOUNT, nil)
-      local pos = act:GetActionPoint() or ThePlayer:GetPosition()
+local function DoBufferedAction(act, rpc_cb)
+  local controller = ThePlayer.components.playercontroller
 
-      -- It appears that PlayerController.locomotor exists when movement prediction is one, and nil when it is off.
-      -- According to vanilla's code, when movement prediction is on, the action RPC needs to be one frame later than the movement prediction RPC.
-      --
-      --[[ scripts/components/playercontroller.lua
+  -- It appears that PlayerController.locomotor exists when movement prediction is one, and nil when it is off.
+  -- According to vanilla's code, when movement prediction is on, the action RPC needs to be one frame later than the movement prediction RPC.
+  --
+  --[[ scripts/components/playercontroller.lua
 function PlayerController:RemoteBufferedAction(buffaction)
   if not self.ismastersim and buffaction.preview_cb ~= nil then
     --Delay one frame if we just sent movement prediction so that
@@ -56,24 +51,31 @@ function PlayerController:RemoteBufferedAction(buffaction)
     end
   end
 end
-      --]]
-      --
-      -- Vanilla does this delay by putting the SendRPCToServer() call into a callback stored in BufferedAction.preview_cb. This callback is processed somewhere down the chain, and it will finally reach PlayerControll:RemoteBufferedAction() above.
-      -- See relevant code at the bottom of PlayerController:OnRightClick()
-      if controller.locomotor == nil then
-        SendRPCToServer(RPC.RightClick, act.action.code, pos.x, pos.z, act.target, act.rotation, true, nil, nil, act.action.mod_name)
-      else
-        act.preview_cb = function()
-          SendRPCToServer(RPC.RightClick, act.action.code, pos.x, pos.z, act.target, act.rotation, true, nil, nil, act.action.mod_name)
-        end
-      end
-      controller:DoAction(act)
-    else
-      local act2 = BufferedAction(ThePlayer, ThePlayer, ACTIONS.DISMOUNT)
-      local pos = act2:GetActionPoint() or ThePlayer:GetPosition()
-      SendRPCToServer(RPC.RightClick, act2.action.code, pos.x, pos.z, act2.target, act2.rotation, true, nil, nil, act2.action.mod_name)
-      controller:DoAction(act2)
-    end
+  --]]
+  --
+  -- Vanilla does this delay by putting the SendRPCToServer() call into a callback stored in BufferedAction.preview_cb. This callback is processed somewhere down the chain, and it will finally reach PlayerControll:RemoteBufferedAction() above.
+  -- See relevant code at the bottom of PlayerController:OnRightClick()
+
+  if controller.locomotor == nil then
+    rpc_cb()
+  else
+    -- Note vanilla has this extra check for the setting act.preview_cb branch:
+    --     elseif act.action ~= ACTIONS.WALKTO and controller:CanLocomote() then
+    act.preview_cb = rpc_cb
+  end
+  controller:DoAction(act)
+end
+
+function EXPORTS.MountOrDis()
+  local beefalo = FindBeefalo()
+  if beefalo ~= nil then
+    local act = ThePlayer.replica.rider:IsRiding()
+      and BufferedAction(ThePlayer, ThePlayer, ACTIONS.DISMOUNT)
+      or BufferedAction(ThePlayer, beefalo, ACTIONS.MOUNT)
+    local pos = act:GetActionPoint() or ThePlayer:GetPosition()
+    DoBufferedAction(act, function()
+      SendRPCToServer(RPC.RightClick, act.action.code, pos.x, pos.z, act.target, act.rotation, true, nil, nil, act.action.mod_name)
+    end)
   end
 end
 
@@ -83,7 +85,8 @@ function EXPORTS.Feed()
   if food ~= nil and beefalo ~= nil then
     local act = BufferedAction(ThePlayer, beefalo, ACTIONS.GIVE, food)
     local pos = act:GetActionPoint() or ThePlayer:GetPosition()
-    SendRPCToServer(RPC.ControllerUseItemOnSceneFromInvTile, act.action.code, food, act.target, act.action.mod_name)
-    ThePlayer.components.playercontroller:DoAction(act)
+    DoBufferedAction(act, function()
+      SendRPCToServer(RPC.ControllerUseItemOnSceneFromInvTile, act.action.code, food, act.target, act.action.mod_name)
+    end)
   end
 end
