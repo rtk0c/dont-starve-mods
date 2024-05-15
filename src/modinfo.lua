@@ -15,9 +15,6 @@ all_clients_require_mod = false
 server_only_mod = false
 client_only_mod = true
 
-icon_atlas = "modicon.xml"
-icon = "modicon.tex"
-
 
 
 -------- Non-user-facing configuration options --------
