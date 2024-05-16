@@ -2,6 +2,8 @@ modimport("scripts/log")
 modimport("scripts/safe")
 modimport("scripts/modfiles")
 
+modimport("scripts/init/textedit")
+
 local function RunReloadableScripts(safe)
   -- Load mod with global environment
   -- Let modfiles to write to the EXPORTS global variable to provide things to this mod environment  
