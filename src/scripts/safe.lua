@@ -7,8 +7,7 @@ function SafeWrapper(func, default_return)
     local status, res = GLOBAL.pcall(func, ...)
     if status then return res end
 
-    -- Handle error
-    print("["..modinfo.name.."] [error] "..res)
+    LogError(tostring(res))
     return default_return
   end
 end

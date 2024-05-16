@@ -1,3 +1,4 @@
+modimport("scripts/log")
 modimport("scripts/safe")
 modimport("scripts/modfiles")
 
@@ -8,9 +9,14 @@ local function RunReloadableScripts()
   -- `env` global variable contains a ref to the environment table itself, i.e. `env == GLOBAL.getfenv(1)`
   GLOBAL.EXPORTS = env
   for _, modfile in ipairs(modfiles_reloadable) do
-    local chunk = GLOBAL.kleiloadlua(MODROOT .. "scripts/" .. modfile)
-    GLOBAL.setfenv(chunk, GLOBAL)
-    chunk()
+    local path = MODROOT .. "scripts/" .. modfile
+    local chunk = GLOBAL.kleiloadlua(path)
+    if GLOBAL.type(chunk) == "function" then
+      GLOBAL.setfenv(chunk, GLOBAL)
+      chunk()
+    else
+      LogError("Failed to compile script at " .. path)
+    end
   end
   GLOBAL.EXPORTS = old_global_exports
 end
@@ -18,6 +24,7 @@ end
 -- Declare global variable EXPORTS with value nil, otherwise no-op
 -- Needed to convince strict.lua that yes, it is fine in this case to access an undeclared variable
 GLOBAL.EXPORTS = GLOBAL.rawget(GLOBAL, "EXPORTS")
+-- If errors occur here, just let it fail
 RunReloadableScripts()
 
 
@@ -61,7 +68,14 @@ InstallKeybind(
 
 if modinfo.opt_dev_mode then
   GLOBAL.clienttweaks_hotreload = function()
-    print("["..modinfo.name.."] Reloading scripts")
-    RunReloadableScripts()
+    LogInfo("Reloading")
+
+    -- FIXME this really isn't needed, since console commands are wrapped in pcall already
+    local status, res = GLOBAL.pcall(RunReloadableScripts)
+    if status then
+      LogInfo("Reloading completed")
+    else
+      LogError("Reloading failed with error: " .. tostring(res))
+    end
   end
 end
