@@ -5,18 +5,9 @@ local Text = require "widgets/text"
 local Image = require "widgets/image"
 local ImageButton = require "widgets/imagebutton"
 local ScrollableList = require "widgets/scrollablelist"
+local PopupDialogScreen = require "screens/redux/popupdialog"
 local TEMPLATES = require "widgets/redux/templates"
 local OptionsScreen = require "screens/redux/optionsscreen"
-
-local function InputMaskFromString(str)
-	-- TODO
-	return 0
-end
-
-local function InputMaskToString(v)
-	-- TODO
-	return ""
-end
 
 -- Copy a reference to the mod environment here, the global will be cleared after this chunk exits
 local EXPORTS = EXPORTS
@@ -80,12 +71,12 @@ function OptionsScreen:_BuildModKeybinds()
 
         group.binding_btn:SetHelpTextMessage(STRINGS.UI.CONTROLSSCREEN.CHANGEBIND)
         group.binding_btn:SetDisabledFont(CHATFONT)
-        group.binding_btn:SetText(InputMaskToString(kbd.input_mask))
+        group.binding_btn:SetText(EXPORTS.InputMaskToString(kbd.input_mask))
 
 		group.unbinding_btn = group:AddChild(ImageButton("images/global_redux.xml", "close.tex", "close.tex"))
 		group.unbinding_btn:SetOnClick(function()
 			kbd.input_mask = 0
-			group.binding_btn:SetText(InputMaskToString(0))
+			group.binding_btn:SetText(EXPORTS.InputMaskToString(0))
 		end)
 		group.unbinding_btn:SetPosition(x - 5,0)
 		group.unbinding_btn:SetScale(0.4, 0.4)
@@ -129,8 +120,52 @@ function OptionsScreen:_BuildModKeybinds()
     return kbdscreen_root
 end
 
+local keychord_capture_got_keys = {}
+local keychord_capture_callback = nil
+
+local function BeginKeychordCapture(callback)
+    keychord_capture_callback = callback
+end
+
+-- TODO support binding mouse buttons as well
+TheInput:AddKeyHandler(function(key, down)
+    if not keychord_capture_callback then return end
+
+    --[[
+    print(key.." keyinfo.name="..(key_info and key_info.name or "nil"))
+    --]]
+
+    -- NOTE: this key handler only takes keyboard inputs
+    -- Keep taking input until a key release
+    local key_info = EXPORTS.key_infos[key]
+    if not down and key_info and key_info.category ~= "mod" then
+        local mod_mask = EXPORTS.GetModifiersMaskNow()
+        local input_mask = bit.bor(mod_mask, key)
+
+        keychord_capture_callback(input_mask)
+        keychord_capture_callback = nil
+    end
+end)
+
 function OptionsScreen:_MapKeybind(kbd_widget)
-	-- TODO
+    local default_text = string.format(STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT,
+        EXPORTS.InputMaskToString(kbd_widget.keybind.input_mask))
+    local body_text = STRINGS.UI.CONTROLSSCREEN.CONTROL_SELECT .. "\n\n" .. default_text
+    local popup = PopupDialogScreen(kbd_widget.keybind.name, body_text, {})
+    popup.dialog.body:SetPosition(0, 0)
+    popup.OnControl = function(_, control, down) return true end
+
+    TheFrontEnd:PushScreen(popup)
+
+    -- TODO do we need to set this field? since our logic really has nothing to do with OptionsScreen's own codepath
+    self.is_mapping = true 
+    BeginKeychordCapture(function(input_mask)
+        kbd_widget.keybind.input_mask = input_mask
+        kbd_widget.binding_btn:SetText(EXPORTS.InputMaskToString(input_mask))
+        self.is_mapping = false
+        TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
+        TheFrontEnd:PopScreen()
+    end)    
 end
 
 -- FIXME do this more sustainably

@@ -77,6 +77,15 @@ local function InstallKeybind(config_key, callback)
   GLOBAL.TheInput:AddKeyDownHandler(keycode, callback)
 end
 
+--[[
+GLOBAL.TheInput:AddMouseButtonHandler(function(button, down, x, y))
+  print("Mouse button: button="..button.." down="..tostring(down).." x="..x.." y="..y)
+end
+GLOBAL.TheInput:AddKeyHandler(function(key, down)
+  print("Key: key="..key.." down="..tostring(down))
+end)
+--]]
+
 InstallKeybind(
   GetModConfigData("key"),
   SafeWrapper(function()
