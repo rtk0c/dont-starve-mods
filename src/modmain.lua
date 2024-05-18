@@ -1,5 +1,6 @@
 modimport("scripts/log")
 modimport("scripts/safe")
+modimport("scripts/keybind")
 modimport("scripts/modfiles")
 
 local function RunReloadableScripts(safe)
