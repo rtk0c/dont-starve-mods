@@ -60,6 +60,9 @@ function KeybindLib:RegisterKeybind(keybind)
 
   setmetatable(keybind, keybind_metatable)
   keybind._input_mask = 0 -- Mask for unset keybind
+  if keybind.default_mapping then
+    keybind:SetInputMask(self:InputMaskFromString(keybind.default_mapping))
+  end
   keybind.index = #reg + 1
 
   -- Register for id -> keybind lookup
@@ -72,7 +75,7 @@ end
 -- @param modid Mod's ID which they keybind came from.
 -- @param id The keybind's ID to be unregistered.
 function KeybindLib:UnregisterKeybind(modid, id)
-  local reg = KeybindLib.keybind_registry
+  local reg = self.keybind_registry
   local keybind = reg[modid .. ":" .. id]
   if keybind then
     reg[id] = nil
@@ -278,7 +281,7 @@ function KeybindLib:InputMaskFromString(str)
     end
   end
 
-  for keycode, key_info in pairs(KeybindLib.KEY_INFO_TABLE) do
+  for keycode, key_info in pairs(self.KEY_INFO_TABLE) do
     if key_info.name == key_name then
       input_mask = bit.bor(input_mask, keycode)
       break
@@ -294,7 +297,7 @@ function KeybindLib:InputMaskToString(v)
     return ""
   end
 
-  local key_info = KeybindLib.KEY_INFO_TABLE[keycode]
+  local key_info = self.KEY_INFO_TABLE[keycode]
   local primary_key_name = key_info and key_info.name or "<unknown>"
 
   return StringConcat(" + ",
@@ -397,9 +400,9 @@ function KeybindLib:LoadKeybindMappings()
         cursor = nil
       end
 
-      local keybind = KeybindLib.keybind_registry[key]
+      local keybind = self.keybind_registry[key]
       if keybind then
-        keybind:SetInputMask(KeybindLib:InputMaskFromString(input_mask_str))
+        keybind:SetInputMask(self:InputMaskFromString(input_mask_str))
       end
     until not cursor
   end)
@@ -413,8 +416,8 @@ function KeybindLib:SaveKeybindMappings(override_safety)
   end
 
   local saved_kbd = {}
-  for _, kbd in ipairs(KeybindLib.keybind_registry) do
-    table.insert(saved_kbd, kbd.modid .. ":" .. kbd.id .. "=" .. KeybindLib:InputMaskToString(kbd:GetInputMask()))
+  for _, kbd in ipairs(self.keybind_registry) do
+    table.insert(saved_kbd, kbd.modid .. ":" .. kbd.id .. "=" .. self:InputMaskToString(kbd:GetInputMask()))
   end
 
   local path = KnownModIndex:GetModConfigurationPath() .. "KeybindLib_Mappings"

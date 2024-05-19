@@ -70,6 +70,7 @@ GLOBAL.KeybindLib:RegisterKeybind({
   id = "mount_dismount",
   name = "Mount/Dismount Beefalo",
   description = "Hotkey for mounting and dismounting the closest beefalo.",
+  default_mapping = "R",
   modid = modname,
   callback = SafeWrapper(function()
     if not IsInGameplay() then return end
@@ -81,6 +82,7 @@ GLOBAL.KeybindLib:RegisterKeybind({
   id = "feed",
   name = "Feed Beefalo",
   description = "Feed beefalo with the leftmost food item in inventory.",
+  default_mapping = "Mouse Button 4",
   modid = modname,
   callback = SafeWrapper(function()
     if not IsInGameplay() then return end
