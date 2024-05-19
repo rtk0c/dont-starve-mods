@@ -17,6 +17,19 @@ function OptionsScreen:_BuildModKeybinds()
 
   screen_root:SetPosition(290,-20)
 
+  -- Copied from MakeSpinnerTooltip() in optionsscreen.lua
+  local tooltip = screen_root:AddChild(Text(CHATFONT, 25, ""))
+  tooltip:SetPosition(-210, -275)
+  tooltip:SetHAlign(ANCHOR_LEFT)
+  tooltip:SetVAlign(ANCHOR_TOP)
+  tooltip:SetRegionSize(800, 80)
+  tooltip:EnableWordWrap(true)
+
+  -- Copied from various OptionsScreen:_BuildSettings(), etc.
+  local tooltip_divider = screen_root:AddChild(Image("images/global_redux.xml", "item_divider.tex"))
+  tooltip_divider:SetPosition(-210, -225)
+  tooltip_divider:Hide()
+
   local button_x = -371 -- x coord of the left edge
   local button_width = 250
   local button_height = 48
@@ -150,6 +163,28 @@ function OptionsScreen:_BuildModKeybinds()
       kw.unbinding_btn:SetScale(0.4, 0.4)
       kw.unbinding_btn:SetHoverText(STRINGS.UI.CONTROLSSCREEN.UNBIND)
 
+      -- Copied from AddSpinnerTooltip() in optionsscreen.lua
+      local function ongainfocus(is_enabled)
+        local desc = kbd.description
+        if desc then
+          tooltip:SetString(desc)
+          tooltip_divider:Show()
+        end
+      end
+      kw.bg.ongainfocus = ongainfocus
+      -- If we don't do this, hovering on this btn doesn't show tooltip
+      -- So it seems like Button() doesn't let focus propagate through it?
+      -- FIXME mouse exiting binding_btn does not unset tooltip?
+      kw.binding_btn.ongainfocus = ongainfocus
+      local function onlosefocus(is_enabled)
+        if kw.parent and not kw.parent.focus then
+          tooltip:SetString("")
+          tooltip_divider:Hide()
+        end
+      end
+      kw.bg.onlosefocus = onlosefocus
+      kw.binding_btn.onlosefocus = onlosefocus
+
       kw.focus_forward = kw.binding_btn
 
       table.insert(widgets, kw)
@@ -158,8 +193,8 @@ function OptionsScreen:_BuildModKeybinds()
 
   -- FIXME for some reason, if cursor is in the gap between keybinds, AND is on the left side of the frame, then scroll doesn't work
   --       similarly doesn't work only if is on the left side of section title
-  local widgetlist = screen_root:AddChild(ScrollableList(widgets, (label_width + spacing + button_width)/2, 470, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, "GOLD"))
-  widgetlist:SetPosition(0, -25)
+  local widgetlist = screen_root:AddChild(ScrollableList(widgets, (label_width + spacing + button_width)/2, 400, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, "GOLD"))
+  widgetlist:SetPosition(0, 5)
 
   screen_root.focus_forward = widgetlist
 
