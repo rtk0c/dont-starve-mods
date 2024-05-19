@@ -2,8 +2,9 @@
 
 ----- Notes on Terminology -----
 -- Vanilla uses "control" for an action (e.g. Primary, left click by default), we use "keybind".
--- Vanilla uses "control" for a key combination, we use "keychord" for the semantics of this. The encoded representations is "input mask".
--- "input mask" is an uint32 that matches a specific keychord.
+-- Vanilla uses "control" for a key combination, we use "keychord" for the concept of this. The encoded representations is "input mask".
+-- "mapping" is used in place of "keychord" when referring to some stored key sequence in general, rather than as the concept of a key sequence.
+-- "input mask" is an uint32 that represents a keychord.
 -- "mod[ifiers] mask" is the upper 16 bits of an input mask, that describes the modifier states.
 -- "keycode" is the lower 16 bits of an input mask, that describes the non-modifier key. Matches vanilla's KEY_xxx in constants.lua
 -- "key" is any on/off stateful input, so it can be keyboard keys or mouse buttons or controller buttons
@@ -12,7 +13,18 @@
 
 KeybindLib = {}
 
+-------
+-- The table containing all keybinds registered to KeybindLib. The array part contains all keybinds, in order of
+-- registration. The hash part contains a lookup table from "<modid>:<id>" to the keybind object.
+--
+-- To iterate through all registered keybinds, use `for _, keybind in ipairs(KeybindLib.keybind_registry) do ... end`
+-- which gives the keybinds in order.
 KeybindLib.keybind_registry = {}
+
+-------
+-- An internal lookup table of from keycode (lower 16 bits of input mask) to keybind objects. This is automatically
+-- maintained on calling `<keybind object>:SetInputMask()`. You may read from this table to implement your own key
+-- handlers, if needed.
 KeybindLib.keycode_to_keybinds = {}
 
 local keybind_methods = {
@@ -47,12 +59,13 @@ local keybind_metatable = {
 
 -------
 -- @param keybind The keybind object.
--- @param keybind.id An unique identifier for this keybind.
--- @param keybind.modid Your mod's `modname` as registered in `KnownModIndex`. You can retrieve by calling `KnownModIndex:GetModActualName(modinfo.name)`.
--- @param keybind.name A human-readable (and preferrably localized) name for this keybind. For dispaly in UI.
--- @param keybind.callback Function to be called when the keybind is triggered.
+-- @tparam string keybind.id An unique identifier for this keybind.
+-- @tparam string keybind.modid Your mod's `modname` as registered in `KnownModIndex`. You can retrieve by calling `KnownModIndex:GetModActualName(modinfo.name)`.
+-- @tparam string keybind.name A human-readable (and preferrably localized) name for this keybind. For dispaly in UI.
+-- @tparam[opt] string keybind.default_mapping The default mapping, in the Keychord Format. See `KeybindLib:InputMaskToString` and `KeybindLib:InputMaskFromString`.
+-- @tparam[opt] func keybind.callback Function to be called when the keybind is triggered. If nil, nothing happens when the keychord is pressed.
 function KeybindLib:RegisterKeybind(keybind)
-  local reg = KeybindLib.keybind_registry
+  local reg = self.keybind_registry
 
   if reg[keybind.id] then
     error("A keybind with ID '" .. keybind.id .. "' already exists.")
@@ -72,8 +85,8 @@ function KeybindLib:RegisterKeybind(keybind)
 end
 
 -------
--- @param modid Mod's ID which they keybind came from.
--- @param id The keybind's ID to be unregistered.
+-- @tparam string modid Mod's ID which they keybind came from.
+-- @tparam string id The keybind's ID to be unregistered.
 function KeybindLib:UnregisterKeybind(modid, id)
   local reg = self.keybind_registry
   local keybind = reg[modid .. ":" .. id]
@@ -223,6 +236,9 @@ local MOD_RSHIFT_BIT = 26
 local MOD_RALT_BIT = 25
 local MOD_RSUPER_BIT = 24
 
+-------
+-- Compute the modifiers mask pressed at this moment.
+-- @treturn number A Lua number, with the upper 16 bits filled as the current modifiers mask.
 function KeybindLib:GetModifiersMaskNow()
   return bit.bor(
     TheInput:IsKeyDown(KEY_LCTRL) and bit.lshift(1, MOD_LCTRL_BIT) or 0,
@@ -261,6 +277,9 @@ local KEY_NAME_TO_MODIFIER_BIT = {
   RSuper = MOD_RSUPER_BIT,
 }
 
+-------
+-- Parse input mask from a string in the Keychord Format.
+-- @see KeybindLib:InputMaskToString
 function KeybindLib:InputMaskFromString(str)
   -- print("InputMaskFromString(): '"..str.."'")
 
@@ -291,6 +310,9 @@ function KeybindLib:InputMaskFromString(str)
   return input_mask
 end
 
+-------
+-- Stringify input mask in the Keychord Format.
+-- @see KeybindLib:InputMaskFromString
 function KeybindLib:InputMaskToString(v)
   local keycode = bit.band(bit.rshift(v, 32), 0xFFFF)
   if keycode == 0 then
@@ -375,6 +397,9 @@ end)
 
 local last_load_failed = false
 
+-------
+-- Load keybind mappings from the "KeybindLib_Mappings" file in DST's mod config folder. Overrides current values in
+-- `keybind_registry`.
 function KeybindLib:LoadKeybindMappings()
   local path = KnownModIndex:GetModConfigurationPath() .. "KeybindLib_Mappings"
   TheSim:GetPersistentString(path, function(load_success, str)
@@ -408,6 +433,8 @@ function KeybindLib:LoadKeybindMappings()
   end)
 end
 
+-------
+-- Save keybind mappings to the "KeybindLib_Mappings" file in DST's mod config folder.
 function KeybindLib:SaveKeybindMappings(override_safety)
   -- If last load failed, let's not override the user's (probably still fine on disk) keybinds with the default values
   -- unless the caller specifically asked us to.
@@ -421,5 +448,6 @@ function KeybindLib:SaveKeybindMappings(override_safety)
   end
 
   local path = KnownModIndex:GetModConfigurationPath() .. "KeybindLib_Mappings"
+  -- Don't zlib compress the string, it's not big, and we want the user to be able to edit it with a text editor
   TheSim:SetPersistentString(path, table.concat(saved_kbd, "\n"), false)
 end
