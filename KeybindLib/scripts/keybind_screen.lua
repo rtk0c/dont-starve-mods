@@ -155,10 +155,7 @@ function OptionsScreen:_BuildModKeybinds()
       kw.binding_btn:SetText(KeybindLib:InputMaskToString(kbd:GetInputMask()))
 
       kw.unbinding_btn = kw:AddChild(ImageButton("images/global_redux.xml", "close.tex", "close.tex"))
-      kw.unbinding_btn:SetOnClick(function()
-        kbd:SetInputMask(0)
-        kw.binding_btn:SetText(KeybindLib:InputMaskToString(0))
-      end)
+      kw.unbinding_btn:SetOnClick(function() self:_UnmapKeybind(kw) end)
       kw.unbinding_btn:SetPosition(x - 5,0)
       kw.unbinding_btn:SetScale(0.4, 0.4)
       kw.unbinding_btn:SetHoverText(STRINGS.UI.CONTROLSSCREEN.UNBIND)
@@ -201,6 +198,29 @@ function OptionsScreen:_BuildModKeybinds()
   return screen_root
 end
 
+function OptionsScreen:_UserChangeKeybind(kbd_widget, new_input_mask)
+  local kbd = kbd_widget.keybind
+
+  -- Save changes to buffer
+  self._mapping_changes[kbd:GetFullID()] = new_input_mask
+
+  -- Display changes on screen
+  kbd_widget.binding_btn:SetText(KeybindLib:InputMaskToString(new_input_mask))
+  if kbd:GetInputMask() ~= new_input_mask then
+    kbd_widget.changed_image:Show()
+    if not self:IsDirty() then
+      self:MakeDirty()
+    end
+  else
+    kbd_widget.changed_image:Hide()
+  end
+end
+
+function OptionsScreen:_UnmapKeybind(kbd_widget)
+  self:_UserChangeKeybind(kbd_widget, 0)
+  TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
+end
+
 function OptionsScreen:_MapKeybind(kbd_widget)
   local default_text = string.format(STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT,
     KeybindLib:InputMaskToString(kbd_widget.keybind:GetInputMask()))
@@ -219,8 +239,7 @@ function OptionsScreen:_MapKeybind(kbd_widget)
   -- other systems" in OptionsScreen:_MapControl() mean.
   self.inst:DoTaskInTime(0, function() 
     KeybindLib:BeginKeychordCapture(function(input_mask)
-      kbd_widget.keybind:SetInputMask(input_mask)
-      kbd_widget.binding_btn:SetText(KeybindLib:InputMaskToString(input_mask))
+      self:_UserChangeKeybind(kbd_widget, input_mask)
       TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
       TheFrontEnd:PopScreen()
     end)
@@ -231,6 +250,8 @@ local old_ctor = OptionsScreen._ctor
 function OptionsScreen:_ctor(prev_screen, default_section)
   old_ctor(self, prev_screen, default_section)
 
+  self._mapping_changes = {}
+
   -- Insert our tab after initialization; the alternative is copy and modify the entire self:_BuildMenu() method.
   -- Unfortunately, this forces our Mod Keybinds tab to be the first one in the list--positioning is done in Menu:AddCustomItem(), we can't control that.
 
@@ -239,3 +260,31 @@ function OptionsScreen:_ctor(prev_screen, default_section)
   -- We need to call this again (old_ctor already did it) to hide the new panel added above ^^^
   self.subscreener:OnMenuButtonSelected("settings")
 end
+
+-- The option saving codepath is a confusing labyrinth.
+-- From what I can tell, depending on what the user does (clicking Apply? clicking Back? using controller's back button?)
+-- the logic starts at various different functions that are irrelevant to us, but everythings ends up at some point calling either:
+-- * :ConfirmApply() -> :Save() -> :Apply() -> ...
+--   note that self:ApplyVolume() is called here, but self:ApplyChanges() is something that sits before this chain
+-- * :ConfirmRevert() -> :RevertChanges() -> :Apply() -> ...
+-- depending on if the user chose to save or to discard changes.
+-- Vanilla save the controls in self:Apply(), but we don't have an extra indirection, so we must go one level higher.
+
+local old_Save = OptionsScreen.Save
+function OptionsScreen:Save(cb)
+  old_Save(self, cb)
+
+  local reg = KeybindLib.keybind_registry
+  for full_id, new_input_mask in pairs(self._mapping_changes) do
+    reg[full_id]:SetInputMask(new_input_mask)
+  end
+  KeybindLib:SaveKeybindMappings()
+end
+
+-- No-op for revert changes, just throw away self._mapping_changes is enough
+--[[
+local old_RevertChanges = OptionsScreen.RevertChanges
+function OptionsScreen:RevertChanges()
+  old_RevertChanges(self)
+end
+--]]

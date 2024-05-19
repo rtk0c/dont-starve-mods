@@ -28,6 +28,10 @@ KeybindLib.keybind_registry = {}
 KeybindLib.keycode_to_keybinds = {}
 
 local keybind_methods = {
+  GetFullID = function(self)
+    return self.modid .. ":" .. self.id
+  end,
+
   GetInputMask = function(self)
     return self._input_mask
   end,
@@ -74,12 +78,17 @@ function KeybindLib:RegisterKeybind(keybind)
   setmetatable(keybind, keybind_metatable)
   keybind._input_mask = 0 -- Mask for unset keybind
   if keybind.default_mapping then
-    keybind:SetInputMask(self:InputMaskFromString(keybind.default_mapping))
+    local im = self:InputMaskFromString(keybind.default_mapping)
+    keybind.default_input_mask = im -- Cache the value
+    keybind:SetInputMask(im)
+  else
+    keybind.default_mapping = ""
+    keybind.default_input_mask = 0
   end
   keybind.index = #reg + 1
 
   -- Register for id -> keybind lookup
-  reg[keybind.modid .. ":" .. keybind.id] = keybind
+  reg[keybind:GetFullID()] = keybind
   -- Register for ordered iteration
   reg[keybind.index] = keybind
 end
@@ -395,8 +404,6 @@ end)
 
 
 
-local last_load_failed = false
-
 -------
 -- Load keybind mappings from the "KeybindLib_Mappings" file in DST's mod config folder. Overrides current values in
 -- `keybind_registry`.
@@ -404,8 +411,7 @@ function KeybindLib:LoadKeybindMappings()
   local path = KnownModIndex:GetModConfigurationPath() .. "KeybindLib_Mappings"
   TheSim:GetPersistentString(path, function(load_success, str)
     if not load_success then
-      last_load_failed = true
-      print("[KeybindLib] Failed to load mod keybinds. You will get default keybinds, and any changes will not be saved.")
+      print("[KeybindLib] Failed to load mod keybinds. You will get default keybinds.")
       return
     end
 
@@ -435,16 +441,13 @@ end
 
 -------
 -- Save keybind mappings to the "KeybindLib_Mappings" file in DST's mod config folder.
-function KeybindLib:SaveKeybindMappings(override_safety)
-  -- If last load failed, let's not override the user's (probably still fine on disk) keybinds with the default values
-  -- unless the caller specifically asked us to.
-  if last_load_failed and not override_safety then
-    return
-  end
-
+function KeybindLib:SaveKeybindMappings()
   local saved_kbd = {}
   for _, kbd in ipairs(self.keybind_registry) do
-    table.insert(saved_kbd, kbd.modid .. ":" .. kbd.id .. "=" .. self:InputMaskToString(kbd:GetInputMask()))
+    local im = kbd:GetInputMask()
+    if im ~= kbd.default_input_mask then
+      table.insert(saved_kbd, kbd:GetFullID() .. "=" .. self:InputMaskToString(im))
+    end
   end
 
   local path = KnownModIndex:GetModConfigurationPath() .. "KeybindLib_Mappings"
