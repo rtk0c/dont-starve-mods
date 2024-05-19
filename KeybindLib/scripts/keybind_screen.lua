@@ -17,10 +17,6 @@ function OptionsScreen:_BuildModKeybinds()
 
   screen_root:SetPosition(290,-20)
 
-  local horizontal_line = screen_root:AddChild(Image("images/global_redux.xml", "item_divider.tex"))
-  horizontal_line:SetScale(.9)
-  horizontal_line:SetPosition(-210, 175)
-
   local button_x = -371 -- x coord of the left edge
   local button_width = 250
   local button_height = 48
@@ -54,8 +50,44 @@ function OptionsScreen:_BuildModKeybinds()
   end
   table.sort(keybinds_sections, function(a, b) return a.modname < b.modname end)
 
-  -- Create list widgets for sections and keybinds
   local widgets = {}
+
+  local header = Widget("")
+
+  local horizontal_line = header:AddChild(Image("images/global_redux.xml", "item_divider.tex"))
+  horizontal_line:SetScale(.85)
+  horizontal_line:SetPosition(-63, -15)
+
+  local x = button_x
+  x = x + label_width/2
+  local actions_header = header:AddChild(Text(HEADERFONT, 30, STRINGS.UI.OPTIONS.ACTION))
+  actions_header:SetColour(UICOLOURS.GOLD_UNIMPORTANT)
+  actions_header:SetPosition(x - 20, 10) -- move a bit towards text
+  actions_header:SetRegionSize(label_width, 50)
+  actions_header:SetHAlign(ANCHOR_MIDDLE)
+  x = x + label_width/2
+
+  -- NOTE: this is a child of screen_root
+  local vertical_line = screen_root:AddChild(Image("images/global_redux.xml", "item_divider.tex"))
+  vertical_line:SetScale(.7, .43)
+  vertical_line:SetRotation(90)
+  vertical_line:SetPosition(-156, 0)
+  -- The x = -160 came from align_to_scroll in vanilla's code's x coordinate
+  -- Since vertical_line used to be a child of it, we just add the x coordinates for correction
+  -- The y = 0 came from the same thing. 200 + -200 = 0
+  vertical_line:SetPosition(-160 + x, 0)
+  vertical_line:SetTint(1,1,1,.1)
+  x = x + spacing
+
+  x = x + button_width/2
+  local device_header = header:AddChild(Text(HEADERFONT, 30, STRINGS.UI.CONTROLSSCREEN.INPUT_NAMES[1]))
+  device_header:SetColour(UICOLOURS.GOLD_UNIMPORTANT)
+  device_header:SetPosition(x, 10)
+  x = x + button_width/2 + spacing
+
+  table.insert(widgets, header)
+
+  -- Create list widgets for sections and keybinds
   for _, section in ipairs(keybinds_sections) do
     local modid = section.modid
     local modname = section.modname
@@ -124,33 +156,10 @@ function OptionsScreen:_BuildModKeybinds()
     end
   end
 
-  local align_to_scroll = screen_root:AddChild(Widget(""))
-  align_to_scroll:SetPosition(-160, 200) -- hand-tuned amount that aligns with scrollablelist
-
-  local x = button_x
-  x = x + label_width/2
-  local actions_header = align_to_scroll:AddChild(Text(HEADERFONT, 30, STRINGS.UI.OPTIONS.ACTION))
-  actions_header:SetColour(UICOLOURS.GOLD_UNIMPORTANT)
-  actions_header:SetPosition(x-20, 0) -- move a bit towards text
-  actions_header:SetRegionSize(label_width, 50)
-  actions_header:SetHAlign(ANCHOR_MIDDLE)
-  x = x + label_width/2
-
-  local vertical_line = align_to_scroll:AddChild(Image("images/global_redux.xml", "item_divider.tex"))
-  vertical_line:SetScale(.7, .43)
-  vertical_line:SetRotation(90)
-  vertical_line:SetPosition(x, -200)
-  vertical_line:SetTint(1,1,1,.1)
-  x = x + spacing
-
-  x = x + button_width/2
-  local device_header = align_to_scroll:AddChild(Text(HEADERFONT, 30, "Keyboard/Mouse"))
-  device_header:SetColour(UICOLOURS.GOLD_UNIMPORTANT)
-  device_header:SetPosition(x, 0)
-  x = x + button_width/2 + spacing
-
-  local widgetlist = screen_root:AddChild(ScrollableList(widgets, (label_width + spacing + button_width)/2, 420, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, "GOLD"))
-  widgetlist:SetPosition(0, -50)
+  -- FIXME for some reason, if cursor is in the gap between keybinds, AND is on the left side of the frame, then scroll doesn't work
+  --       similarly doesn't work only if is on the left side of section title
+  local widgetlist = screen_root:AddChild(ScrollableList(widgets, (label_width + spacing + button_width)/2, 470, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, "GOLD"))
+  widgetlist:SetPosition(0, -25)
 
   screen_root.focus_forward = widgetlist
 
