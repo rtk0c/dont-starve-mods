@@ -1,6 +1,5 @@
 modimport("scripts/log")
 modimport("scripts/safe")
-modimport("scripts/keybind")
 modimport("scripts/modfiles")
 
 local function RunReloadableScripts(safe)
@@ -50,8 +49,6 @@ if modinfo.opt_dev_mode then
     RunReloadableScripts(true)
     LogInfo("Reload finished")
   end
-  GLOBAL.clienttweaks_load_kbd = LoadKeybindMappings
-  GLOBAL.clienttweaks_save_kbd = SaveKeybindMappings
 else
   RunReloadableScripts()
 end
@@ -67,7 +64,7 @@ GLOBAL.TheInput:AddKeyHandler(function(key, down)
 end)
 --]]
 
-RegisterKeybind({
+GLOBAL.KeybindLib:RegisterKeybind({
   id = "mount_dismount",
   name = "Mount/Dismount Beefalo",
   description = "Hotkey for mounting and dismounting the closest beefalo.",
@@ -78,15 +75,13 @@ RegisterKeybind({
   end),
 })
 
-RegisterKeybind({
+GLOBAL.KeybindLib:RegisterKeybind({
   id = "feed",
   name = "Feed Beefalo",
   description = "Feed beefalo with the leftmost food item in inventory.",
-  modid = modinfo.id,
+  modid = modinfo.modname,
   callback = SafeWrapper(function()
     if not IsInGameplay() then return end
     Feed()
   end),
 })
-
-AddGamePostInit(LoadKeybindMappings)

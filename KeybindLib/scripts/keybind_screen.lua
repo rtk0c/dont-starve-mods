@@ -1,3 +1,5 @@
+-- NOTE: this file runs with GLOBAL environment
+
 -- FIXME the way we're writing over OptionsScreen's methods is not compatible with DST's hotreload.lua (I think)
 
 local Widget = require "widgets/widget"
@@ -8,9 +10,6 @@ local ScrollableList = require "widgets/scrollablelist"
 local PopupDialogScreen = require "screens/redux/popupdialog"
 local TEMPLATES = require "widgets/redux/templates"
 local OptionsScreen = require "screens/redux/optionsscreen"
-
--- Copy a reference to the mod environment here, the global will be cleared after this chunk exits
-local EXPORTS = EXPORTS
 
 local function FindModByID(modid)
   for _, cand in ipairs(ModManager.mods) do
@@ -39,7 +38,7 @@ function OptionsScreen:_BuildModKeybinds()
 
   -- Categorize keybinds by their declared modid
   local keybinds_by_mod = {}
-  for _, kbd in ipairs(EXPORTS.keybind_registry) do
+  for _, kbd in ipairs(KeybindLib.keybind_registry) do
     local mod_key = kbd.modid and kbd.modid or "<unknown>"
     local mod_keybinds = keybinds_by_mod[mod_key]
     if not mod_keybinds then
@@ -119,12 +118,12 @@ function OptionsScreen:_BuildModKeybinds()
 
       kw.binding_btn:SetHelpTextMessage(STRINGS.UI.CONTROLSSCREEN.CHANGEBIND)
       kw.binding_btn:SetDisabledFont(CHATFONT)
-      kw.binding_btn:SetText(EXPORTS.InputMaskToString(kbd:GetInputMask()))
+      kw.binding_btn:SetText(KeybindLib:InputMaskToString(kbd:GetInputMask()))
 
       kw.unbinding_btn = kw:AddChild(ImageButton("images/global_redux.xml", "close.tex", "close.tex"))
       kw.unbinding_btn:SetOnClick(function()
         kbd:SetInputMask(0)
-        kw.binding_btn:SetText(EXPORTS.InputMaskToString(0))
+        kw.binding_btn:SetText(KeybindLib:InputMaskToString(0))
       end)
       kw.unbinding_btn:SetPosition(x - 5,0)
       kw.unbinding_btn:SetScale(0.4, 0.4)
@@ -171,7 +170,7 @@ end
 
 function OptionsScreen:_MapKeybind(kbd_widget)
   local default_text = string.format(STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT,
-    EXPORTS.InputMaskToString(kbd_widget.keybind:GetInputMask()))
+    KeybindLib:InputMaskToString(kbd_widget.keybind:GetInputMask()))
   local body_text = STRINGS.UI.CONTROLSSCREEN.CONTROL_SELECT .. "\n\n" .. default_text
   local popup = PopupDialogScreen(kbd_widget.keybind.name, body_text, {})
   popup.dialog.body:SetPosition(0, 0)
@@ -179,9 +178,9 @@ function OptionsScreen:_MapKeybind(kbd_widget)
 
   TheFrontEnd:PushScreen(popup)
 
-  EXPORTS.BeginKeychordCapture(function(input_mask)
+  KeybindLib:BeginKeychordCapture(function(input_mask)
     kbd_widget.keybind:SetInputMask(input_mask)
-    kbd_widget.binding_btn:SetText(EXPORTS.InputMaskToString(input_mask))
+    kbd_widget.binding_btn:SetText(KeybindLib:InputMaskToString(input_mask))
     TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
     TheFrontEnd:PopScreen()
   end)

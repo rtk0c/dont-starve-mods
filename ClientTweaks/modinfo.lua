@@ -1,7 +1,7 @@
 name = "Client Tweaks"
 id = "rtk0c.DST_ClientTweaks" --unofficial field
 author = "rtk0c"
-description = "Various client tweaks"
+description = "Various client tweaks."
 version = "1.0"
 
 dont_starve_compatible = false
@@ -14,6 +14,12 @@ api_version = 10
 all_clients_require_mod = false
 server_only_mod = false
 client_only_mod = true
+
+mod_dependencies = {
+	-- [API] KeybindLib
+	-- TODO fill in when KeybindLib is uploaded
+    { workshop = "workshop-XXXX", },
+}
 
 
 
