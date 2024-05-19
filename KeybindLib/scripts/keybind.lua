@@ -48,7 +48,7 @@ local keybind_metatable = {
 -------
 -- @param keybind The keybind object.
 -- @param keybind.id An unique identifier for this keybind.
--- @param keybind.modid An unique identifier for the mod that is registering this keybind. If your modinfo.lua uses the de-facto "id" field, this should have the same value; your mod's name will be automatically looked up and used for display. If not, this will be dispalyed directly.
+-- @param keybind.modid Your mod's `modname` as registered in `KnownModIndex`. You can retrieve by calling `KnownModIndex:GetModActualName(modinfo.name)`.
 -- @param keybind.name A human-readable (and preferrably localized) name for this keybind. For dispaly in UI.
 -- @param keybind.callback Function to be called when the keybind is triggered.
 function KeybindLib:RegisterKeybind(keybind)

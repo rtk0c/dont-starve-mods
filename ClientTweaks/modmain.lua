@@ -64,11 +64,13 @@ GLOBAL.TheInput:AddKeyHandler(function(key, down)
 end)
 --]]
 
+local modname = GLOBAL.KnownModIndex:GetModActualName(modinfo.name)
+
 GLOBAL.KeybindLib:RegisterKeybind({
   id = "mount_dismount",
   name = "Mount/Dismount Beefalo",
   description = "Hotkey for mounting and dismounting the closest beefalo.",
-  modid = modinfo.id,
+  modid = modname,
   callback = SafeWrapper(function()
     if not IsInGameplay() then return end
     MountOrDis()
@@ -79,7 +81,7 @@ GLOBAL.KeybindLib:RegisterKeybind({
   id = "feed",
   name = "Feed Beefalo",
   description = "Feed beefalo with the leftmost food item in inventory.",
-  modid = modinfo.modname,
+  modid = modname,
   callback = SafeWrapper(function()
     if not IsInGameplay() then return end
     Feed()

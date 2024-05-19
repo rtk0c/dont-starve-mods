@@ -11,15 +11,6 @@ local PopupDialogScreen = require "screens/redux/popupdialog"
 local TEMPLATES = require "widgets/redux/templates"
 local OptionsScreen = require "screens/redux/optionsscreen"
 
-local function FindModByID(modid)
-  for _, cand in ipairs(ModManager.mods) do
-    if cand.modinfo.id == modid then
-      return cand
-    end
-  end
-  return nil
-end
-
 -- Copied from OptionsScreen:_BuildControls()
 function OptionsScreen:_BuildModKeybinds()
   local screen_root = Widget("ROOT")
@@ -52,14 +43,12 @@ function OptionsScreen:_BuildModKeybinds()
   -- Sort mod's section alphabetically
   local keybinds_sections = {}
   for modid, mod_keybinds in pairs(keybinds_by_mod) do
-    local mod = FindModByID(modid)
-  
     -- Sort keybinds within each mod's section alphabetically
     table.sort(mod_keybinds, function(a, b) return a.name < b.name end)
 
     table.insert(keybinds_sections, {
       modid = modid,
-      modname = mod and (mod.modinfo.name) or modid,
+      modname = KnownModIndex:GetModFancyName(modid),
       keybinds = mod_keybinds,
     })
   end
