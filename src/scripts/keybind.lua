@@ -1,22 +1,47 @@
-kbd_list = {}
+----- Notes on Terminology -----
+-- Vanilla uses "control" for an action (e.g. Primary, left click by default), we use "keybind".
+-- Vanilla uses "control" for a key combination, we use "keychord" for the semantics of this. The encoded representations is "input mask".
+-- "input mask" is an uint32 that matches a specific keychord.
+-- "mod[ifiers] mask" is the upper 16 bits of an input mask, that describes the modifier states.
+-- "keycode" is the lower 16 bits of an input mask, that describes the non-modifier key. Matches vanilla's KEY_xxx in constants.lua
+-- "key" is any on/off stateful input, so it can be keyboard keys or mouse buttons or controller buttons
+
+
+
+keybind_registry = {}
 
 -------
--- @param kbd The keybind object.
--- @param kbd.id An unique identifier for this keybind.
--- @param kbd.name A human-readable (and preferrably localized) name for this keybind. For dispaly in UI.
--- @param kbd.callback Function to be called when the keybind is triggered.
-function RegisterKeybind(kbd)
-  kbd.input_mask = 0 -- Mask for unset keybind
-  GLOBAL.table.insert(kbd_list, kbd)
+-- @param keybind The keybind object.
+-- @param keybind.id An unique identifier for this keybind.
+-- @param keybind.name A human-readable (and preferrably localized) name for this keybind. For dispaly in UI.
+-- @param keybind.callback Function to be called when the keybind is triggered.
+function RegisterKeybind(keybind)
+  if keybind_registry[keybind.id] then
+    error("A keybind with ID '" .. keybind.id .. "' already exists.")
+  end
+
+  keybind.input_mask = 0 -- Mask for unset keybind
+  keybind.index = #keybind_registry + 1
+  -- Register for id -> keybind lookup
+  keybind_registry[keybind.id] = keybind
+  -- Register for ordered iteration
+  keybind_registry[keybind.index] = keybind
 end
 
-RegisterKeybind({
-  id = "test_kbd",
-  name = "Test Keybind",
-  callback = function() print("keybind pressed!") end,
-})
+-------
+-- @param id The keybind's ID to be unregistered.
+function UnregisterKeybind(id)
+  local keybind = keybind_registry[id]
+  if keybind then
+    keybind_registry[id] = nil
+    keybind_registry[keybind.index] = nil
+  end
+end
 
-key_infos = {
+-------
+-- Maps keycode into a key information table. Not all possible keycodes emitted by C++ code are stored
+-- here, so always check against nil lookup values.
+KEY_INFO_TABLE = {
   [GLOBAL.KEY_KP_0] = { name = "Numpad 0", category = "numpad" },
   [GLOBAL.KEY_KP_1] = { name = "Numpad 1", category = "numpad" },
   [GLOBAL.KEY_KP_2] = { name = "Numpad 2", category = "numpad" },
@@ -189,7 +214,7 @@ function InputMaskToString(v)
     return ""
   end
 
-  local key_info = key_infos[keycode]
+  local key_info = KEY_INFO_TABLE[keycode]
   local primary_key_name = key_info and key_info.name or "<unknown>"
 
   return StringConcat(" + ",
@@ -202,3 +227,39 @@ function InputMaskToString(v)
     TestBit(v, MOD_RALT_BIT) and "RAlt",
     TestBit(v, MOD_RSUPER_BIT) and "RSuper") .. primary_key_name
 end
+
+local keychord_capture_callback = nil
+
+function BeginKeychordCapture(callback)
+  keychord_capture_callback = callback
+end
+
+function CancelKeychordCapture()
+  keychord_capture_callback = nil
+end
+
+GLOBAL.TheInput:AddKeyHandler(function(key, down)
+  if not keychord_capture_callback then return end
+
+  -- NOTE: this key handler only takes keyboard inputs
+  -- Keep taking input until a key release
+  local key_info = KEY_INFO_TABLE[key]
+  if not down and key_info and key_info.category ~= "mod" then
+    local mod_mask = GetModifiersMaskNow()
+    local input_mask = GLOBAL.bit.bor(mod_mask, key)
+
+    keychord_capture_callback(input_mask)
+    keychord_capture_callback = nil
+  end
+end)
+
+GLOBAL.TheInput:AddMouseButtonHandler(function(button, down, x, y)
+  if not keychord_capture_callback then return end
+  if not down then
+    local mod_mask = GetModifiersMaskNow()
+    local input_mask = GLOBAL.bit.bor(mod_mask, key)
+    
+    keychord_capture_callback(input_mask)
+    keychord_capture_callback = nil
+  end
+end)
