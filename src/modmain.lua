@@ -5,7 +5,7 @@ modimport("scripts/modfiles")
 
 local function RunReloadableScripts(safe)
   -- Load mod with global environment
-  -- Let modfiles to write to the EXPORTS global variable to provide things to this mod environment  
+  -- Let modfiles to write to the EXPORTS global variable to provide things to this mod environment
   local old_global_exports = GLOBAL.EXPORTS
   -- `env` global variable contains a ref to the environment table itself, i.e. `env == GLOBAL.getfenv(1)`
   GLOBAL.EXPORTS = env
@@ -50,6 +50,8 @@ if modinfo.opt_dev_mode then
     RunReloadableScripts(true)
     LogInfo("Reload finished")
   end
+  GLOBAL.clienttweaks_load_kbd = LoadKeybindMappings
+  GLOBAL.clienttweaks_save_kbd = SaveKeybindMappings
 else
   RunReloadableScripts()
 end
@@ -86,3 +88,5 @@ RegisterKeybind({
     Feed()
   end),
 })
+
+AddGamePostInit(LoadKeybindMappings)

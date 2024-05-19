@@ -58,20 +58,23 @@ function RegisterKeybind(keybind)
   keybind.index = #keybind_registry + 1
 
   -- Register for id -> keybind lookup
-  keybind_registry[keybind.id] = keybind
+  keybind_registry[keybind.modid .. ":" .. keybind.id] = keybind
   -- Register for ordered iteration
   keybind_registry[keybind.index] = keybind
 end
 
 -------
+-- @param modid Mod's ID which they keybind came from.
 -- @param id The keybind's ID to be unregistered.
-function UnregisterKeybind(id)
-  local keybind = keybind_registry[id]
+function UnregisterKeybind(modid, id)
+  local keybind = keybind_registry[modid .. ":" .. id]
   if keybind then
     keybind_registry[id] = nil
     keybind_registry[keybind.index] = nil
   end
 end
+
+
 
 -------
 -- Maps keycode into a key information table. Not all possible keycodes emitted by C++ code are stored
@@ -198,14 +201,16 @@ KEY_INFO_TABLE = {
   [GLOBAL.MOUSEBUTTON_SCROLLDOWN] = { name = "Mouse Scroll Down", category = "mouse" },
 }
 
-MOD_LCTRL_BIT = 31
-MOD_LSHIFT_BIT = 30
-MOD_LALT_BIT = 29
-MOD_LSUPER_BIT = 28
-MOD_RCTRL_BIT = 27
-MOD_RSHIFT_BIT = 26
-MOD_RALT_BIT = 25
-MOD_RSUPER_BIT = 24
+
+
+local MOD_LCTRL_BIT = 31
+local MOD_LSHIFT_BIT = 30
+local MOD_LALT_BIT = 29
+local MOD_LSUPER_BIT = 28
+local MOD_RCTRL_BIT = 27
+local MOD_RSHIFT_BIT = 26
+local MOD_RALT_BIT = 25
+local MOD_RSUPER_BIT = 24
 
 function GetModifiersMaskNow()
   local TI = GLOBAL.TheInput
@@ -237,9 +242,48 @@ local function StringConcat(separator, ...)
   return res
 end
 
+local KEY_NAME_TO_MODIFIER_BIT = {
+  LCtrl = MOD_LCTRL_BIT,
+  LShift = MOD_LSHIFT_BIT,
+  LAlt = MOD_LALT_BIT,
+  LSuper = MOD_LSUPER_BIT,
+  RCtrl = MOD_RCTRL_BIT,
+  RShift = MOD_RSHIFT_BIT,
+  RAlt = MOD_RALT_BIT,
+  RSuper = MOD_RSUPER_BIT,
+}
+
 function InputMaskFromString(str)
-  -- TODO
-  return 0
+  -- print("InputMaskFromString(): '"..str.."'")
+
+  local string = GLOBAL.string
+  local bit = GLOBAL.bit
+
+  local input_mask = 0
+  local i = 1
+  local key_name
+  while true do
+    local pos, j = string.find(str, " + ", i, true)
+    if pos then
+      -- string.sub is gets [start,end] rather than the conventional [start,end)
+      -- so we can't avoid doing arithmetic on `pos`, and if it's nil that will error.
+      key_name = string.sub(str, i, pos-1)
+      input_mask = bit.bor(input_mask, bit.lshift(1, KEY_NAME_TO_MODIFIER_BIT[key_name]))
+      i = j + 1
+    else
+      key_name = string.sub(str, i)
+      break
+    end
+  end
+
+  for keycode, key_info in pairs(KEY_INFO_TABLE) do
+    if key_info.name == key_name then
+      input_mask = bit.bor(input_mask, keycode)
+      break
+    end
+  end
+
+  return input_mask
 end
 
 function InputMaskToString(v)
@@ -262,6 +306,8 @@ function InputMaskToString(v)
     TestBit(v, MOD_RALT_BIT) and "RAlt",
     TestBit(v, MOD_RSUPER_BIT) and "RSuper") .. primary_key_name
 end
+
+
 
 local keychord_capture_callback = nil
 
@@ -321,10 +367,58 @@ GLOBAL.TheInput:AddMouseButtonHandler(function(button, down, x, y)
   end
 end)
 
---[[
-for i = 1, 10 do
-  RegisterKeybind({id="test"..i, name="Do test"..i, modid="rtk0c.DST_ClientTweaks", callback = function() print("Keybind triggered: "..i) end})
+
+
+local last_load_failed = false
+
+function LoadKeybindMappings()
+  local path = GLOBAL.KnownModIndex:GetModConfigurationPath() .. "KeybindLib_Mappings"
+  GLOBAL.TheSim:GetPersistentString(path, function(load_success, str)
+    if not load_success then
+      last_load_failed = true
+      LogError("Failed to load mod keybinds. You will get default keybinds, and any changes will not be saved.")
+      return
+    end
+
+    local string = GLOBAL.string
+    local cursor = 1
+    repeat
+      local assign_idx = string.find(str, "=", cursor, true)
+      local key = string.sub(str, cursor, assign_idx-1) -- <modid>:<id>
+      cursor = assign_idx + 1
+
+      local newline_idx = string.find(str, "\n", cursor, true)
+      local input_mask_str
+      if newline_idx then
+        input_mask_str = string.sub(str, cursor, newline_idx-1)
+        cursor = newline_idx + 1
+      else
+        input_mask_str = string.sub(str, cursor)
+        cursor = nil
+      end
+
+      local keybind = keybind_registry[key]
+      if keybind then
+        keybind:SetInputMask(InputMaskFromString(input_mask_str))
+      end
+    until not cursor
+  end)
 end
-RegisterKeybind({id="haha", name="Haha", modid="My Amazing Mod", callback = function() print("MY AMAZING MOD!!! YEAH!!!!!!") end})
-RegisterKeybind({id="beers", name="-1 beers"})
---]]
+
+function SaveKeybindMappings(override_safety)
+  -- If last load failed, let's not override the user's (probably still fine on disk) keybinds with the default values
+  -- unless the caller specifically asked us to.
+  if last_load_failed and not override_safety then
+    return
+  end
+
+  local table = GLOBAL.table
+
+  local saved_kbd = {}
+  for _, kbd in ipairs(keybind_registry) do
+    table.insert(saved_kbd, kbd.modid .. ":" .. kbd.id .. "=" .. InputMaskToString(kbd:GetInputMask()))
+  end
+
+  local path = GLOBAL.KnownModIndex:GetModConfigurationPath() .. "KeybindLib_Mappings"
+  GLOBAL.TheSim:SetPersistentString(path, table.concat(saved_kbd, "\n"), false)
+end
