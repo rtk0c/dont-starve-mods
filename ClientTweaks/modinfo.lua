@@ -2,7 +2,7 @@ name = "Client Tweaks"
 id = "rtk0c.DST_ClientTweaks" --unofficial field
 author = "rtk0c"
 description = "Various client tweaks."
-version = "1.0"
+version = "1.1"
 
 dont_starve_compatible = false
 reign_of_giants_compatible = false
@@ -16,9 +16,9 @@ server_only_mod = false
 client_only_mod = true
 
 mod_dependencies = {
-	-- [API] KeybindLib
-	-- TODO fill in when KeybindLib is uploaded
-    { workshop = "workshop-XXXX", },
+  -- [API] KeybindLib
+  -- TODO fill in when KeybindLib is uploaded
+  { workshop = "workshop-3250212696", },
 }
 
 

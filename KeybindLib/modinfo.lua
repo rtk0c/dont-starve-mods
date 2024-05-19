@@ -4,7 +4,7 @@ description = [[Library for handling keybinds, in a sane manner. For both users 
 
 See https://github.com/rtk0c/dont-starve-mods/tree/master/KeybindLib for documentation.
 This mod is published at https://fontawesome.com/icons/keyboard?f=classic&s=solid on Steam Workshop.]]
-version = "1.0"
+version = "1.1"
 
 dont_starve_compatible = false
 reign_of_giants_compatible = false
