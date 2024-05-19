@@ -119,11 +119,11 @@ function OptionsScreen:_BuildModKeybinds()
 
       kw.binding_btn:SetHelpTextMessage(STRINGS.UI.CONTROLSSCREEN.CHANGEBIND)
       kw.binding_btn:SetDisabledFont(CHATFONT)
-      kw.binding_btn:SetText(EXPORTS.InputMaskToString(kbd.input_mask))
+      kw.binding_btn:SetText(EXPORTS.InputMaskToString(kbd:GetInputMask()))
 
       kw.unbinding_btn = kw:AddChild(ImageButton("images/global_redux.xml", "close.tex", "close.tex"))
       kw.unbinding_btn:SetOnClick(function()
-        kbd.input_mask = 0
+        kbd:SetInputMask(0)
         kw.binding_btn:SetText(EXPORTS.InputMaskToString(0))
       end)
       kw.unbinding_btn:SetPosition(x - 5,0)
@@ -171,7 +171,7 @@ end
 
 function OptionsScreen:_MapKeybind(kbd_widget)
   local default_text = string.format(STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT,
-    EXPORTS.InputMaskToString(kbd_widget.keybind.input_mask))
+    EXPORTS.InputMaskToString(kbd_widget.keybind:GetInputMask()))
   local body_text = STRINGS.UI.CONTROLSSCREEN.CONTROL_SELECT .. "\n\n" .. default_text
   local popup = PopupDialogScreen(kbd_widget.keybind.name, body_text, {})
   popup.dialog.body:SetPosition(0, 0)
@@ -180,7 +180,7 @@ function OptionsScreen:_MapKeybind(kbd_widget)
   TheFrontEnd:PushScreen(popup)
 
   EXPORTS.BeginKeychordCapture(function(input_mask)
-    kbd_widget.keybind.input_mask = input_mask
+    kbd_widget.keybind:SetInputMask(input_mask)
     kbd_widget.binding_btn:SetText(EXPORTS.InputMaskToString(input_mask))
     TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
     TheFrontEnd:PopScreen()

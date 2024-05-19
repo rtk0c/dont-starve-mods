@@ -9,6 +9,38 @@
 
 
 keybind_registry = {}
+keycode_to_keybinds = {}
+
+local keybind_methods = {
+  GetInputMask = function(self)
+    return self._input_mask
+  end,
+  SetInputMask = function(self, v)
+    local bit = GLOBAL.bit
+    local old_keycode = bit.band(bit.rshift(self._input_mask, 32), 0xFFFF)
+    self._input_mask = v
+    local new_keycode = bit.band(bit.rshift(v, 32), 0xFFFF)
+
+    local old_hooks = keycode_to_keybinds[old_keycode]
+    if old_hooks then
+      old_hooks[self] = nil
+    end
+
+    if new_keycode ~= 0 then
+      local new_hooks = keycode_to_keybinds[new_keycode]
+      if not new_hooks then
+        new_hooks = {}
+        keycode_to_keybinds[new_keycode] = new_hooks
+      end
+      new_hooks[self] = true -- Dummy value, we just want to use it as a hashset
+    end
+  end,
+}
+local keybind_metatable = {
+  -- Don't provide a __newindex, if users want to insert extra keys, just let it stay local to the keybind object
+  -- Similarly if they (for whatever reason) wants to override methods, they also stay local
+  __index = keybind_methods,
+}
 
 -------
 -- @param keybind The keybind object.
@@ -21,8 +53,10 @@ function RegisterKeybind(keybind)
     error("A keybind with ID '" .. keybind.id .. "' already exists.")
   end
 
-  keybind.input_mask = 0 -- Mask for unset keybind
+  GLOBAL.setmetatable(keybind, keybind_metatable)
+  keybind._input_mask = 0 -- Mask for unset keybind
   keybind.index = #keybind_registry + 1
+
   -- Register for id -> keybind lookup
   keybind_registry[keybind.id] = keybind
   -- Register for ordered iteration
@@ -60,7 +94,7 @@ KEY_INFO_TABLE = {
   [GLOBAL.KEY_KP_PLUS] = { name = "Numpad +", category = "numpad" },
   [GLOBAL.KEY_KP_ENTER] = { name = "Numpad Enter", category = "numpad" },
   [GLOBAL.KEY_KP_EQUALS] = { name = "Numpad =", category = "numpad" },
- 
+
   -- Misc category
   [GLOBAL.KEY_MINUS] = { name = "-" },
   [GLOBAL.KEY_EQUALS] = { name = "=" },
@@ -239,7 +273,25 @@ function CancelKeychordCapture()
   keychord_capture_callback = nil
 end
 
+local function HandleKeyTrigger(keycode)
+  local keybind_list = keycode_to_keybinds[keycode]
+  if not keybind_list then return end
+
+  local mod_mask = GetModifiersMaskNow()
+  local input_mask = GLOBAL.bit.bor(mod_mask, keycode)
+
+  for keybind, _ in GLOBAL.pairs(keybind_list) do
+    if keybind:GetInputMask() == input_mask and keybind.callback then
+      keybind.callback()
+    end
+  end
+end
+
 GLOBAL.TheInput:AddKeyHandler(function(key, down)
+  if not down then
+    HandleKeyTrigger(key)
+  end
+
   if not keychord_capture_callback then return end
 
   -- NOTE: this key handler only takes keyboard inputs
@@ -255,18 +307,24 @@ GLOBAL.TheInput:AddKeyHandler(function(key, down)
 end)
 
 GLOBAL.TheInput:AddMouseButtonHandler(function(button, down, x, y)
+  if not down then
+    HandleKeyTrigger(button)
+  end
+
   if not keychord_capture_callback then return end
   if not down then
     local mod_mask = GetModifiersMaskNow()
-    local input_mask = GLOBAL.bit.bor(mod_mask, key)
-    
+    local input_mask = GLOBAL.bit.bor(mod_mask, button)
+
     keychord_capture_callback(input_mask)
     keychord_capture_callback = nil
   end
 end)
 
+--[[
 for i = 1, 10 do
-  RegisterKeybind({id="test"..i, name="Do test"..i, modid="rtk0c.DST_ClientTweaks"})
+  RegisterKeybind({id="test"..i, name="Do test"..i, modid="rtk0c.DST_ClientTweaks", callback = function() print("Keybind triggered: "..i) end})
 end
-RegisterKeybind({id="haha", name="Haha", modid="My Amazing Mod"})
+RegisterKeybind({id="haha", name="Haha", modid="My Amazing Mod", callback = function() print("MY AMAZING MOD!!! YEAH!!!!!!") end})
 RegisterKeybind({id="beers", name="-1 beers"})
+--]]
