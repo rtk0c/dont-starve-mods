@@ -12,13 +12,22 @@ local OptionsScreen = require "screens/redux/optionsscreen"
 -- Copy a reference to the mod environment here, the global will be cleared after this chunk exits
 local EXPORTS = EXPORTS
 
+local function FindModByID(modid)
+  for _, cand in ipairs(ModManager.mods) do
+    if cand.modinfo.id == modid then
+      return cand
+    end
+  end
+  return nil
+end
+
 -- Copied from OptionsScreen:_BuildControls()
 function OptionsScreen:_BuildModKeybinds()
-  local kbdscreen_root = Widget("ROOT")
+  local screen_root = Widget("ROOT")
 
-  kbdscreen_root:SetPosition(290,-20)
+  screen_root:SetPosition(290,-20)
 
-  local horizontal_line = kbdscreen_root:AddChild(Image("images/global_redux.xml", "item_divider.tex"))
+  local horizontal_line = screen_root:AddChild(Image("images/global_redux.xml", "item_divider.tex"))
   horizontal_line:SetScale(.9)
   horizontal_line:SetPosition(-210, 175)
 
@@ -28,65 +37,106 @@ function OptionsScreen:_BuildModKeybinds()
   local label_width = 375
   local spacing = 15
 
-  local kbd_widgets = {}
+  -- Categorize keybinds by their declared modid
+  local keybinds_by_mod = {}
+  for _, kbd in ipairs(EXPORTS.keybind_registry) do
+    local mod_key = kbd.modid and kbd.modid or "<unknown>"
+    local mod_keybinds = keybinds_by_mod[mod_key]
+    if not mod_keybinds then
+      mod_keybinds = {}
+      keybinds_by_mod[mod_key] = mod_keybinds
+    end
 
-  for i, kbd in ipairs(EXPORTS.keybind_registry) do
-    local group = Widget("keybind:" .. kbd.id)
-    group.bg = group:AddChild(TEMPLATES.ListItemBackground(700, button_height))
-    group.bg:SetPosition(-60,0)
-    group.bg:SetScale(1.025, 1)
-    group:SetScale(1,1,0.75)
-
-    group.keybind = kbd
-
-    local x = button_x
-
-    group.label = group:AddChild(Text(CHATFONT, 28))
-    group.label:SetString(kbd.name)
-    group.label:SetHAlign(ANCHOR_LEFT)
-    group.label:SetColour(UICOLOURS.GOLD_UNIMPORTANT)
-    group.label:SetRegionSize(label_width, 50)
-    x = x + label_width/2
-    group.label:SetPosition(x,0)
-    x = x + label_width/2 + spacing
-    group.label:SetClickable(false)
-
-    x = x + button_width/2
-    group.changed_image = group:AddChild(Image("images/global_redux.xml", "wardrobe_spinner_bg.tex"))
-    group.changed_image:SetTint(1,1,1,0.3)
-    group.changed_image:ScaleToSize(button_width, button_height)
-    group.changed_image:SetPosition(x,0)
-    group.changed_image:Hide()
-
-    group.binding_btn = group:AddChild(ImageButton("images/global_redux.xml", "blank.tex", "spinner_focus.tex"))
-    group.binding_btn:ForceImageSize(button_width, button_height)
-    group.binding_btn:SetTextColour(UICOLOURS.GOLD_CLICKABLE)
-    group.binding_btn:SetTextFocusColour(UICOLOURS.GOLD_FOCUS)
-    group.binding_btn:SetFont(CHATFONT)
-    group.binding_btn:SetTextSize(30)
-    group.binding_btn:SetPosition(x,0)
-    group.binding_btn:SetOnClick(function() self:_MapKeybind(group) end)
-    x = x + button_width/2 + spacing
-
-    group.binding_btn:SetHelpTextMessage(STRINGS.UI.CONTROLSSCREEN.CHANGEBIND)
-    group.binding_btn:SetDisabledFont(CHATFONT)
-    group.binding_btn:SetText(EXPORTS.InputMaskToString(kbd.input_mask))
-
-    group.unbinding_btn = group:AddChild(ImageButton("images/global_redux.xml", "close.tex", "close.tex"))
-    group.unbinding_btn:SetOnClick(function()
-      kbd.input_mask = 0
-      group.binding_btn:SetText(EXPORTS.InputMaskToString(0))
-    end)
-    group.unbinding_btn:SetPosition(x - 5,0)
-    group.unbinding_btn:SetScale(0.4, 0.4)
-    group.unbinding_btn:SetHoverText(STRINGS.UI.CONTROLSSCREEN.UNBIND)
-
-    group.focus_forward = group.binding_btn
-
-    table.insert(kbd_widgets, group)
+    table.insert(mod_keybinds, kbd)
   end
 
-  local align_to_scroll = kbdscreen_root:AddChild(Widget(""))
+  -- Sort mod's section alphabetically
+  local keybinds_sections = {}
+  for modid, mod_keybinds in pairs(keybinds_by_mod) do
+    local mod = FindModByID(modid)
+  
+    -- Sort keybinds within each mod's section alphabetically
+    table.sort(mod_keybinds, function(a, b) return a.name < b.name end)
+
+    table.insert(keybinds_sections, {
+      modid = modid,
+      modname = mod and (mod.modinfo.name) or modid,
+      keybinds = mod_keybinds,
+    })
+  end
+  table.sort(keybinds_sections, function(a, b) return a.modname < b.modname end)
+
+  -- Create list widgets for sections and keybinds
+  local widgets = {}
+  for _, section in ipairs(keybinds_sections) do
+    local modid = section.modid
+    local modname = section.modname
+
+    local section_title = Text(HEADERFONT, 30, modname)
+    section_title:SetHAlign(ANCHOR_MIDDLE)
+    section_title:SetColour(UICOLOURS.GOLD_SELECTED)
+
+    table.insert(widgets, section_title)
+
+    for _, kbd in ipairs(section.keybinds) do
+      -- "Keybind Widget"
+      local kw = Widget(modid .. ":" .. kbd.id)
+      kw.bg = kw:AddChild(TEMPLATES.ListItemBackground(700, button_height))
+      kw.bg:SetPosition(-60,0)
+      kw.bg:SetScale(1.025, 1)
+      kw:SetScale(1,1,0.75)
+
+      kw.keybind = kbd
+
+      local x = button_x
+
+      kw.label = kw:AddChild(Text(CHATFONT, 28))
+      kw.label:SetString(kbd.name)
+      kw.label:SetHAlign(ANCHOR_LEFT)
+      kw.label:SetColour(UICOLOURS.GOLD_UNIMPORTANT)
+      kw.label:SetRegionSize(label_width, 50)
+      x = x + label_width/2
+      kw.label:SetPosition(x,0)
+      x = x + label_width/2 + spacing
+      kw.label:SetClickable(false)
+
+      x = x + button_width/2
+      kw.changed_image = kw:AddChild(Image("images/global_redux.xml", "wardrobe_spinner_bg.tex"))
+      kw.changed_image:SetTint(1,1,1,0.3)
+      kw.changed_image:ScaleToSize(button_width, button_height)
+      kw.changed_image:SetPosition(x,0)
+      kw.changed_image:Hide()
+
+      kw.binding_btn = kw:AddChild(ImageButton("images/global_redux.xml", "blank.tex", "spinner_focus.tex"))
+      kw.binding_btn:ForceImageSize(button_width, button_height)
+      kw.binding_btn:SetTextColour(UICOLOURS.GOLD_CLICKABLE)
+      kw.binding_btn:SetTextFocusColour(UICOLOURS.GOLD_FOCUS)
+      kw.binding_btn:SetFont(CHATFONT)
+      kw.binding_btn:SetTextSize(30)
+      kw.binding_btn:SetPosition(x,0)
+      kw.binding_btn:SetOnClick(function() self:_MapKeybind(kw) end)
+      x = x + button_width/2 + spacing
+
+      kw.binding_btn:SetHelpTextMessage(STRINGS.UI.CONTROLSSCREEN.CHANGEBIND)
+      kw.binding_btn:SetDisabledFont(CHATFONT)
+      kw.binding_btn:SetText(EXPORTS.InputMaskToString(kbd.input_mask))
+
+      kw.unbinding_btn = kw:AddChild(ImageButton("images/global_redux.xml", "close.tex", "close.tex"))
+      kw.unbinding_btn:SetOnClick(function()
+        kbd.input_mask = 0
+        kw.binding_btn:SetText(EXPORTS.InputMaskToString(0))
+      end)
+      kw.unbinding_btn:SetPosition(x - 5,0)
+      kw.unbinding_btn:SetScale(0.4, 0.4)
+      kw.unbinding_btn:SetHoverText(STRINGS.UI.CONTROLSSCREEN.UNBIND)
+
+      kw.focus_forward = kw.binding_btn
+
+      table.insert(widgets, kw)
+    end
+  end
+
+  local align_to_scroll = screen_root:AddChild(Widget(""))
   align_to_scroll:SetPosition(-160, 200) -- hand-tuned amount that aligns with scrollablelist
 
   local x = button_x
@@ -111,12 +161,12 @@ function OptionsScreen:_BuildModKeybinds()
   device_header:SetPosition(x, 0)
   x = x + button_width/2 + spacing
 
-  local kbd_widgetlist = kbdscreen_root:AddChild(ScrollableList(kbd_widgets, (label_width + spacing + button_width)/2, 420, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, "GOLD"))
-  kbd_widgetlist:SetPosition(0, -50)
+  local widgetlist = screen_root:AddChild(ScrollableList(widgets, (label_width + spacing + button_width)/2, 420, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, "GOLD"))
+  widgetlist:SetPosition(0, -50)
 
-  kbdscreen_root.focus_forward = kbd_widgetlist
+  screen_root.focus_forward = widgetlist
 
-  return kbdscreen_root
+  return screen_root
 end
 
 function OptionsScreen:_MapKeybind(kbd_widget)
@@ -134,7 +184,7 @@ function OptionsScreen:_MapKeybind(kbd_widget)
     kbd_widget.binding_btn:SetText(EXPORTS.InputMaskToString(input_mask))
     TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
     TheFrontEnd:PopScreen()
-  end)    
+  end)
 end
 
 if not OptionsScreen._vanilla_ctor then

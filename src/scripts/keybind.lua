@@ -13,6 +13,7 @@ keybind_registry = {}
 -------
 -- @param keybind The keybind object.
 -- @param keybind.id An unique identifier for this keybind.
+-- @param keybind.modid An unique identifier for the mod that is registering this keybind. If your modinfo.lua uses the de-facto "id" field, this should have the same value; your mod's name will be automatically looked up and used for display. If not, this will be dispalyed directly.
 -- @param keybind.name A human-readable (and preferrably localized) name for this keybind. For dispaly in UI.
 -- @param keybind.callback Function to be called when the keybind is triggered.
 function RegisterKeybind(keybind)
@@ -263,3 +264,9 @@ GLOBAL.TheInput:AddMouseButtonHandler(function(button, down, x, y)
     keychord_capture_callback = nil
   end
 end)
+
+for i = 1, 10 do
+  RegisterKeybind({id="test"..i, name="Do test"..i, modid="rtk0c.DST_ClientTweaks"})
+end
+RegisterKeybind({id="haha", name="Haha", modid="My Amazing Mod"})
+RegisterKeybind({id="beers", name="-1 beers"})
