@@ -167,16 +167,20 @@ function OptionsScreen:_MapKeybind(kbd_widget)
 
   TheFrontEnd:PushScreen(popup)
 
-  KeybindLib:BeginKeychordCapture(function(input_mask)
-    kbd_widget.keybind:SetInputMask(input_mask)
-    kbd_widget.binding_btn:SetText(KeybindLib:InputMaskToString(input_mask))
-    TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
-    TheFrontEnd:PopScreen()
+  -- It appears that on some platforms (Windows, but not Linux, from the machines I have) buttons' .OnClock() callback
+  -- triggers on mouse down, rather than mouse up, so our keychord capturer will finish with the mouse up event
+  -- immediately. Delay 1 frame to work around this.
+  --
+  -- This might be what vanillas' comment "Delaying the MapControl one frame. Done for Steam Deck, but this wont impact
+  -- other systems" in OptionsScreen:_MapControl() mean.
+  self.inst:DoTaskInTime(0, function() 
+    KeybindLib:BeginKeychordCapture(function(input_mask)
+      kbd_widget.keybind:SetInputMask(input_mask)
+      kbd_widget.binding_btn:SetText(KeybindLib:InputMaskToString(input_mask))
+      TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
+      TheFrontEnd:PopScreen()
+    end)
   end)
-end
-
-if not OptionsScreen._vanilla_ctor then
-  OptionsScreen._vanilla_ctor = OptionsScreen._ctor
 end
 
 local old_ctor = OptionsScreen._ctor

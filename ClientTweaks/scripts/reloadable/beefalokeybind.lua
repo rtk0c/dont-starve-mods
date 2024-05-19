@@ -1,3 +1,6 @@
+-- Adapted from Beefalo Keybinds
+-- https://steamcommunity.com/sharedfiles/filedetails/?id=2964797588
+
 local function FindBeefalo()
   local beefalo = nil
   local x, y, z = ThePlayer.Transform:GetWorldPosition()

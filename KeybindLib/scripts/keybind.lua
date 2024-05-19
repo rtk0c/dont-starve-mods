@@ -203,6 +203,8 @@ KeybindLib.KEY_INFO_TABLE = {
   [MOUSEBUTTON_LEFT] = { name = "Mouse Left", category = "mouse" },
   [MOUSEBUTTON_RIGHT] = { name = "Mouse Right", category = "mouse" },
   [MOUSEBUTTON_MIDDLE] = { name = "Mouse Middle", category = "mouse" },
+  [1005] = { name = "Mouse Button 4", category = "mouse" },
+  [1006] = { name = "Mouse Button 5", category = "mouse" },
   [MOUSEBUTTON_SCROLLUP] = { name = "Mouse Scroll Up", category = "mouse" },
   [MOUSEBUTTON_SCROLLDOWN] = { name = "Mouse Scroll Down", category = "mouse" },
 }
