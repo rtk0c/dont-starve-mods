@@ -107,6 +107,7 @@ end
 
 
 
+-- TODO replace this with STRINGS.CONTROLSSCREEN.CONTROLS.INPUTS
 -------
 -- Maps keycode into a key information table. Not all possible keycodes emitted by C++ code are stored
 -- here, so always check against nil lookup values.
@@ -234,8 +235,25 @@ KeybindLib.KEY_INFO_TABLE = {
   [MOUSEBUTTON_SCROLLDOWN] = { name = "Mouse Scroll Down", category = "mouse" },
 }
 
+-------
+-- A reverse lookup table going from key name to keycode. If you need to go from key name to key info, write
+-- `KeybindLib.KEY_INFOTABLE[KeybindLib.KEY_NAME_LOOKUP_TABLE[your_keycode]]`.
+-- @see KeybindLib.KEY_INFO_TABLE
+KeybindLib.KEY_NAME_LOOKUP_TABLE = {}
+
+do
+  local key2info = KeybindLib.KEY_INFO_TABLE
+  local name2key = KeybindLib.KEY_NAME_LOOKUP_TABLE
+
+  for keycode, info in pairs(key2info) do
+    name2key[info.name] = keycode
+  end
+end
 
 
+
+-- These are local because which bits are which is an implementation detail.
+-- Consider them private.
 local MOD_LCTRL_BIT = 31
 local MOD_LSHIFT_BIT = 30
 local MOD_LALT_BIT = 29
@@ -263,16 +281,6 @@ end
 
 local function TestBit(mask, n)
   return bit.band(bit.rshift(mask, n), 1) == 1
-end
-
-local function StringConcat(separator, ...)
-  local res = ""
-  for _, v in ipairs(arg) do
-    if v then
-      res = res .. tostring(v) .. separator
-    end
-  end
-  return res
 end
 
 local KEY_NAME_TO_MODIFIER_BIT = {
@@ -309,11 +317,9 @@ function KeybindLib:InputMaskFromString(str)
     end
   end
 
-  for keycode, key_info in pairs(self.KEY_INFO_TABLE) do
-    if key_info.name == key_name then
-      input_mask = bit.bor(input_mask, keycode)
-      break
-    end
+  local keycode = self.KEY_NAME_LOOKUP_TABLE[key_name]
+  if keycode then
+    input_mask = bit.bor(input_mask, keycode)
   end
 
   return input_mask
@@ -328,18 +334,25 @@ function KeybindLib:InputMaskToString(v)
     return ""
   end
 
-  local key_info = self.KEY_INFO_TABLE[keycode]
-  local primary_key_name = key_info and key_info.name or "<unknown>"
+  local pieces = {}
+  local function F(bit, str)
+    if TestBit(v, bit) then
+      table.insert(pieces, str)
+    end
+  end
+  F(MOD_LCTRL_BIT, "LCtrl")
+  F(MOD_LSHIFT_BIT, "LShift")
+  F(MOD_LALT_BIT, "LAlt")
+  F(MOD_LSUPER_BIT, "LSuper")
+  F(MOD_RCTRL_BIT, "RCtrl")
+  F(MOD_RSHIFT_BIT, "RShift")
+  F(MOD_RALT_BIT, "RAlt")
+  F(MOD_RSUPER_BIT, "RSuper")
 
-  return StringConcat(" + ",
-    TestBit(v, MOD_LCTRL_BIT) and "LCtrl",
-    TestBit(v, MOD_LSHIFT_BIT) and "LShift",
-    TestBit(v, MOD_LALT_BIT) and "LAlt",
-    TestBit(v, MOD_LSUPER_BIT) and "LSuper",
-    TestBit(v, MOD_RCTRL_BIT) and "RCtrl",
-    TestBit(v, MOD_RSHIFT_BIT) and "RShift",
-    TestBit(v, MOD_RALT_BIT) and "RAlt",
-    TestBit(v, MOD_RSUPER_BIT) and "RSuper") .. primary_key_name
+  local key_info = self.KEY_INFO_TABLE[keycode]
+  table.insert(pieces, key_info and key_info.name or "<unknown>")
+
+  return table.concat(pieces, " + ")
 end
 
 
