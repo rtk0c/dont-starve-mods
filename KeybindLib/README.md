@@ -4,7 +4,7 @@ A library for handling keybinds. See LDoc comments in [`scripts/keybind.lua`](./
 
 For users: you can go to Options > Mod Keybinds in the main menu or in the in-game esc menu, and configure mods' keybinds with a system similar to vanilla's control system.
 If you wish to backup your keybinds or edit them by hand, it is stored in a plain text file at `<DST data folder>/client_save/mod_config_data/KeybindLib_Mappings`.
-Note that in this file, the spaces around the "+" symbol are required. There must be no spaces around the "=" symbol. There must be no final newline in the file.
+Note that in this file, the spaces around the "+" symbol are required. There must be no spaces around the "=" symbol. There must be a final newline in the file.
 
 ## Quickstart
 

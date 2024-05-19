@@ -202,7 +202,7 @@ function OptionsScreen:_UserChangeKeybind(kbd_widget, new_input_mask)
   local kbd = kbd_widget.keybind
 
   -- Save changes to buffer
-  self._mapping_changes[kbd:GetFullID()] = new_input_mask
+  self._mapping_changes[kbd.full_id] = new_input_mask
 
   -- Display changes on screen
   kbd_widget.binding_btn:SetText(KeybindLib:InputMaskToString(new_input_mask))

@@ -28,10 +28,6 @@ KeybindLib.keybind_registry = {}
 KeybindLib.keycode_to_keybinds = {}
 
 local keybind_methods = {
-  GetFullID = function(self)
-    return self.modid .. ":" .. self.id
-  end,
-
   GetInputMask = function(self)
     return self._input_mask
   end,
@@ -61,6 +57,31 @@ local keybind_metatable = {
   __index = keybind_methods,
 }
 
+-- Keybind full ID must contain no "=", so that our mapping parser can unambiguously split each line in half, getting
+-- the full ID and mapping out.
+--
+-- We can't enforce some valid modid format, since that comes from DST itself.
+-- So we can only cope: escape to get rid of "=", so our parse code won't choke.
+--
+-- We _can_ enforce keybind ID format, so let's do that.
+--
+-- (Don't care if modid or keybind ID contains colons, because we're never splitting a full ID apart again, so all
+-- that matters is we get an unique string from ComputeKeybindFulLID().)
+
+function KeybindLib:IsKeybindIDValid(keybind_id)
+  -- Breakdown of the pattern:
+  --   %w      alphanumeric, == /[a-zA-Z0-9]/
+  --   %-      escape -
+  --   : / _   are themselves
+  -- If we match anything that's not these ^^^ characters, it's invalid
+  return string.match(keybind_id, "[^%w:/_%-]") == nil
+end
+
+function KeybindLib:ComputeKeybindFullID(modid, keybind_id)
+  -- Assume keybind ID is valid, so that there is no "="
+  return string.gsub(modid, "=", "_") .. ":" .. keybind_id
+end
+
 -------
 -- @param keybind The keybind object.
 -- @tparam string keybind.id An unique identifier for this keybind.
@@ -71,24 +92,38 @@ local keybind_metatable = {
 function KeybindLib:RegisterKeybind(keybind)
   local reg = self.keybind_registry
 
-  if reg[keybind.id] then
-    error("A keybind with ID '" .. keybind.id .. "' already exists.")
+  if not self:IsKeybindIDValid(keybind.id) then
+    error("Invalid keybind ID: must contain only alphanumeric, and _ - : / characters")
+  end
+
+  local full_id = self:ComputeKeybindFullID(keybind.modid, keybind.id)
+  if reg[full_id] then
+    error("A keybind with ID '" .. keybind.id .. "' from mod '" .. keybind.modid .. "' already exists.")
   end
 
   setmetatable(keybind, keybind_metatable)
+
+  -- Regular .id and .modid are kept the same, so users can retrieve them for their reasons.
+  -- (e.g. our keybind mapping screen use modid to get mods' fancy name)
+  keybind.full_id = full_id -- Cache for faster access
+
+  local index = #reg + 1
+  keybind.index = index
+
+  -- Set field for :GetInputMask() and :SetInputMask()
   keybind._input_mask = 0 -- Mask for unset keybind
+
   if keybind.default_mapping then
     local im = self:InputMaskFromString(keybind.default_mapping)
     keybind.default_input_mask = im -- Cache the value
-    keybind:SetInputMask(im)
+    keybind:SetInputMask(im) -- Will be overridden if this keybind is mapped by the user on LoadKeybindMappings()
   else
     keybind.default_mapping = ""
     keybind.default_input_mask = 0
   end
-  keybind.index = #reg + 1
 
   -- Register for id -> keybind lookup
-  reg[keybind:GetFullID()] = keybind
+  reg[full_id] = keybind
   -- Register for ordered iteration
   reg[keybind.index] = keybind
 end
@@ -98,8 +133,9 @@ end
 -- @tparam string id The keybind's ID to be unregistered.
 function KeybindLib:UnregisterKeybind(modid, id)
   local reg = self.keybind_registry
-  local keybind = reg[modid .. ":" .. id]
+  local keybind = reg[self:ComputeKeybindFullID(modid, id)]
   if keybind then
+    keybind:SetInputMask(0) -- Clear entry in the hook table
     reg[id] = nil
     reg[keybind.index] = nil
   end
@@ -428,27 +464,27 @@ function KeybindLib:LoadKeybindMappings()
       return
     end
 
-    local cursor = 1
-    repeat
-      local assign_idx = string.find(str, "=", cursor, true)
-      local key = string.sub(str, cursor, assign_idx-1) -- <modid>:<id>
-      cursor = assign_idx + 1
-
-      local newline_idx = string.find(str, "\n", cursor, true)
-      local input_mask_str
-      if newline_idx then
-        input_mask_str = string.sub(str, cursor, newline_idx-1)
-        cursor = newline_idx + 1
-      else
-        input_mask_str = string.sub(str, cursor)
-        cursor = nil
-      end
-
-      local keybind = self.keybind_registry[key]
+    -- Breakdown of the pattern:
+    --   ([^=\r\n]*)   Full ID part
+    --   =             Assignment symbol
+    --   ([^\r\n]*)    Mapping part
+    --   [\r\n]\n?     Line break, handle either CRLF or LF
+    --                 note GetPersistentString() does not normalize, but SetPersistentString() will convert LF to CRLF
+    --
+    -- We specifically want to use greedy match for performance:
+    -- The subpatterns all look like /[^k]*k/ where k is some characters. This construction makes sure that no
+    -- backtracking will ever happen, since whenever the parser reaches some k, it will immediately exit the greedy
+    -- subpattern. If we were to use non-greedy, the parser has to try the subpattern following non-greedy at every
+    -- step.
+    --
+    -- Greedy and non-greedy also should match the exact same thing, since the repetition cannot match across any k.
+    for full_id, mapping in string.gmatch(str, "([^=\r\n]*)=([^\r\n]*)[\r\n]\n?") do
+      print("'"..full_id.."' = '" .. mapping .. "'")
+      local keybind = self.keybind_registry[full_id]
       if keybind then
-        keybind:SetInputMask(self:InputMaskFromString(input_mask_str))
+        keybind:SetInputMask(self:InputMaskFromString(mapping))
       end
-    until not cursor
+    end
   end)
 end
 
@@ -459,9 +495,12 @@ function KeybindLib:SaveKeybindMappings()
   for _, kbd in ipairs(self.keybind_registry) do
     local im = kbd:GetInputMask()
     if im ~= kbd.default_input_mask then
-      table.insert(saved_kbd, kbd:GetFullID() .. "=" .. self:InputMaskToString(im))
+      table.insert(saved_kbd, kbd.full_id .. "=" .. self:InputMaskToString(im))
     end
   end
+
+  -- Force final new line when calling table.concat()
+  table.insert(saved_kbd, "")
 
   local path = KnownModIndex:GetModConfigurationPath() .. "KeybindLib_Mappings"
   -- Don't zlib compress the string, it's not big, and we want the user to be able to edit it with a text editor
