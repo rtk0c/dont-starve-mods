@@ -260,6 +260,8 @@ function OptionsScreen:_ctor(prev_screen, default_section)
   self.subscreener.menu:AddCustomItem(self.subscreener:MenuButton("Mod Keybinds", "mod_keybinds", "Rebind mod keybinds", self.tooltip))
   -- We need to call this again (old_ctor already did it) to hide the new panel added above ^^^
   self.subscreener:OnMenuButtonSelected("settings")
+  -- Call this again (Subscreener:_ctor already did it) to include our new tab
+  self.subscreener.ordered_keys = self.subscreener:_CreatedOrderedKeyList()
 end
 
 -- The option saving codepath is a confusing labyrinth.
