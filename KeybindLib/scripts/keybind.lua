@@ -298,13 +298,13 @@ local MOD_RALT_BIT = 25
 local MOD_RSUPER_BIT = 24
 
 KeybindLib.MODIFIER_KEYS = {
-  [KEY_RSHIFT] = { control = "Shift", bit = MOD_LCTRL_BIT },
+  [KEY_RSHIFT] = { control = "Shift", bit = MOD_RSHIFT_BIT },
   [KEY_LSHIFT] = { control = "Shift", bit = MOD_LSHIFT_BIT },
-  [KEY_RCTRL] = { control = "Control", bit = MOD_LALT_BIT },
-  [KEY_LCTRL] = { control = "Control", bit = MOD_LSUPER_BIT },
-  [KEY_RALT] = { control = "Alt", bit = MOD_RCTRL_BIT },
-  [KEY_LALT] = { control = "Alt", bit = MOD_RSHIFT_BIT },
-  [KEY_LSUPER] = { control = "Super", bit = MOD_RALT_BIT },
+  [KEY_RCTRL] = { control = "Control", bit = MOD_RCTRL_BIT },
+  [KEY_LCTRL] = { control = "Control", bit = MOD_LCTRL_BIT },
+  [KEY_RALT] = { control = "Alt", bit = MOD_RALT_BIT },
+  [KEY_LALT] = { control = "Alt", bit = MOD_LALT_BIT },
+  [KEY_LSUPER] = { control = "Super", bit = MOD_LSUPER_BIT },
   [KEY_RSUPER] = { control = "Super", bit = MOD_RSUPER_BIT },
   -- We don't ever use these combined modifier keycodes in a keychord
   --[[
