@@ -223,7 +223,7 @@ end
 
 function OptionsScreen:_MapKeybind(kbd_widget)
   local default_text = string.format(STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT,
-    KeybindLib:LocalizeInputMask(kbd_widget.keybind:GetInputMask()))
+    KeybindLib:LocalizeInputMask(kbd_widget.keybind.default_input_mask))
   local body_text = STRINGS.UI.CONTROLSSCREEN.CONTROL_SELECT .. "\n\n" .. default_text
   local popup = PopupDialogScreen(kbd_widget.keybind.name, body_text, {})
   popup.dialog.body:SetPosition(0, 0)
