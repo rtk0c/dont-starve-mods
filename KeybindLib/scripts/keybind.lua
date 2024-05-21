@@ -408,6 +408,8 @@ end
 
 
 local function InputHandler(keycode, down)
+  if down then return end
+
   local keybind_list = KeybindLib.keycode_to_keybinds[keycode]
   if not keybind_list then return end
 
