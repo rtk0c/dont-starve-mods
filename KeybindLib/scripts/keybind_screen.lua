@@ -152,7 +152,7 @@ function OptionsScreen:_BuildModKeybinds()
 
       kw.binding_btn:SetHelpTextMessage(STRINGS.UI.CONTROLSSCREEN.CHANGEBIND)
       kw.binding_btn:SetDisabledFont(CHATFONT)
-      kw.binding_btn:SetText(KeybindLib:InputMaskToString(kbd:GetInputMask()))
+      kw.binding_btn:SetText(KeybindLib:LocalizeInputMask(kbd:GetInputMask()))
 
       kw.unbinding_btn = kw:AddChild(ImageButton("images/global_redux.xml", "close.tex", "close.tex"))
       kw.unbinding_btn:SetOnClick(function() self:_UnmapKeybind(kw) end)
@@ -205,7 +205,7 @@ function OptionsScreen:_UserChangeKeybind(kbd_widget, new_input_mask)
   self._mapping_changes[kbd.full_id] = new_input_mask
 
   -- Display changes on screen
-  kbd_widget.binding_btn:SetText(KeybindLib:InputMaskToString(new_input_mask))
+  kbd_widget.binding_btn:SetText(KeybindLib:LocalizeInputMask(new_input_mask))
   if kbd:GetInputMask() ~= new_input_mask then
     kbd_widget.changed_image:Show()
     if not self:IsDirty() then
@@ -223,7 +223,7 @@ end
 
 function OptionsScreen:_MapKeybind(kbd_widget)
   local default_text = string.format(STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT,
-    KeybindLib:InputMaskToString(kbd_widget.keybind:GetInputMask()))
+    KeybindLib:LocalizeInputMask(kbd_widget.keybind:GetInputMask()))
   local body_text = STRINGS.UI.CONTROLSSCREEN.CONTROL_SELECT .. "\n\n" .. default_text
   local popup = PopupDialogScreen(kbd_widget.keybind.name, body_text, {})
   popup.dialog.body:SetPosition(0, 0)
@@ -231,9 +231,8 @@ function OptionsScreen:_MapKeybind(kbd_widget)
   popup.OnControl = function(_, control, down) return true end
 
   local key_capturer = function(_, key, down)
-    -- Keep taking input until a key release
-    local key_info = KeybindLib.KEY_INFO_TABLE[key]
-    if not down and key_info and key_info.category ~= "mod" then
+    -- Keep taking input until a non-modifier key release
+    if not down and not KeybindLib.MODIFIER_KEYS[key] then
       local mod_mask = KeybindLib:GetModifiersMaskNow()
       local input_mask = bit.bor(mod_mask, key)
 

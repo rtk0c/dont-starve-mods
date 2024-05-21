@@ -142,147 +142,145 @@ function KeybindLib:UnregisterKeybind(modid, id)
 end
 
 
-
--- TODO replace this with STRINGS.CONTROLSSCREEN.CONTROLS.INPUTS
 -------
--- Maps keycode into a key information table. Not all possible keycodes emitted by C++ code are stored
--- here, so always check against nil lookup values.
-KeybindLib.KEY_INFO_TABLE = {
-  [KEY_KP_0] = { name = "Numpad 0", category = "numpad" },
-  [KEY_KP_1] = { name = "Numpad 1", category = "numpad" },
-  [KEY_KP_2] = { name = "Numpad 2", category = "numpad" },
-  [KEY_KP_3] = { name = "Numpad 3", category = "numpad" },
-  [KEY_KP_4] = { name = "Numpad 4", category = "numpad" },
-  [KEY_KP_5] = { name = "Numpad 5", category = "numpad" },
-  [KEY_KP_6] = { name = "Numpad 6", category = "numpad" },
-  [KEY_KP_7] = { name = "Numpad 7", category = "numpad" },
-  [KEY_KP_8] = { name = "Numpad 8", category = "numpad" },
-  [KEY_KP_9] = { name = "Numpad 9", category = "numpad" },
-  [KEY_KP_PERIOD] = { name = "Numpad .", category = "numpad" },
-  [KEY_KP_DIVIDE] = { name = "Numpad /", category = "numpad" },
-  [KEY_KP_MULTIPLY] = { name = "Numpad *", category = "numpad" },
-  [KEY_KP_MINUS] = { name = "Numpad -", category = "numpad" },
-  [KEY_KP_PLUS] = { name = "Numpad +", category = "numpad" },
-  [KEY_KP_ENTER] = { name = "Numpad Enter", category = "numpad" },
-  [KEY_KP_EQUALS] = { name = "Numpad =", category = "numpad" },
+-- Maps keycode into a locale-independent, persistent key name. Not all possible keycodes emitted by C++ code are \
+-- stored here, so always check against nil lookup values.
+KeybindLib.canon_keycode2string = {
+  -- Numpad
+  [KEY_KP_0] = "Numpad 0",
+  [KEY_KP_1] = "Numpad 1",
+  [KEY_KP_2] = "Numpad 2",
+  [KEY_KP_3] = "Numpad 3",
+  [KEY_KP_4] = "Numpad 4",
+  [KEY_KP_5] = "Numpad 5",
+  [KEY_KP_6] = "Numpad 6",
+  [KEY_KP_7] = "Numpad 7",
+  [KEY_KP_8] = "Numpad 8",
+  [KEY_KP_9] = "Numpad 9",
+  [KEY_KP_PERIOD] = "Numpad .",
+  [KEY_KP_DIVIDE] = "Numpad /",
+  [KEY_KP_MULTIPLY] = "Numpad *",
+  [KEY_KP_MINUS] = "Numpad -",
+  [KEY_KP_PLUS] = "Numpad +",
+  [KEY_KP_ENTER] = "Numpad Enter",
+  [KEY_KP_EQUALS] = "Numpad =", -- Vanilla commented this one out in strings.lua; because no majorly in use keyboard produces this key?
 
-  -- Misc category
-  [KEY_MINUS] = { name = "-" },
-  [KEY_EQUALS] = { name = "=" },
-  [KEY_BACKSPACE] = { name = "Backspace" },
-  [KEY_SPACE] = { name = "Space" },
-  [KEY_ENTER] = { name = "Enter" },
-  [KEY_ESCAPE] = { name = "Esc" },
-  [KEY_TAB] = { name = "Tab" },
-  [KEY_HOME] = { name = "Home" },
-  [KEY_INSERT] = { name = "Ins" },
-  [KEY_DELETE] = { name = "Del" },
-  [KEY_END] = { name = "End" },
-  [KEY_PAGEUP] = { name = "PgUp" },
-  [KEY_PAGEDOWN] = { name = "PgDn" },
-  [KEY_PAUSE] = { name = "Pause" },
-  [KEY_PRINT] = { name = "Print" },
+  -- Misc
+  [KEY_BACKSPACE] = "Backspace",
+  [KEY_SPACE] = "Space",
+  [KEY_ENTER] = "Enter",
+  [KEY_ESCAPE] = "Esc",
+  [KEY_TAB] = "Tab",
+  [KEY_HOME] = "Home",
+  [KEY_INSERT] = "Ins",
+  [KEY_DELETE] = "Del",
+  [KEY_END] = "End",
+  [KEY_PAGEUP] = "PgUp",
+  [KEY_PAGEDOWN] = "PgDn",
+  [KEY_PAUSE] = "Pause",
+  [KEY_PRINT] = "Print",
+  [KEY_CAPSLOCK] = "CapsLock",
+  [KEY_SCROLLOCK] = "ScrollLock",
 
-  [KEY_CAPSLOCK] = { name = "CapsLock", category = "mod" },
-  [KEY_SCROLLOCK] = { name = "ScrollLock", category = "mod" },
-  [KEY_RSHIFT]  = { name = "RShift", category = "mod" },
-  [KEY_LSHIFT]  = { name = "LShift", category = "mod" },
-  [KEY_RCTRL]  = { name = "RCtrl", category = "mod" },
-  [KEY_LCTRL]  = { name = "LCtrl", category = "mod" },
-  [KEY_RALT]  = { name = "RAlt", category = "mod" },
-  [KEY_LALT]  = { name = "LAlt", category = "mod" },
-  [KEY_LSUPER] = { name = "LSuper", category = "mod" },
-  [KEY_RSUPER] = { name = "RSuper", category = "mod" },
-  -- These seems to be amalganation of the left/right keys done in the C++ later
+  -- Modifiers
+  [KEY_RSHIFT]  = "RShift",
+  [KEY_LSHIFT]  = "LShift",
+  [KEY_RCTRL]  = "RCtrl",
+  [KEY_LCTRL]  = "LCtrl",
+  [KEY_RALT]  = "RAlt",
+  [KEY_LALT]  = "LAlt",
+  [KEY_LSUPER] = "LSuper",
+  [KEY_RSUPER] = "RSuper",
+  -- These seems to be amalganation of the left/right keys done in the C++
+  -- Don't store them. They should not be used for keybind.
   --[[
-  [KEY_ALT] = { name = "Alt", category = "mod" },
-  [KEY_CTRL] = { name = "Ctrl", category = "mod" },
-  [KEY_SHIFT] = { name = "Shift", category = "mod" },
+  [KEY_ALT] = "Alt",
+  [KEY_CTRL] = "Ctrl",
+  [KEY_SHIFT] = "Shift",
   --]]
 
-  [KEY_PERIOD] = { name = "." },
-  [KEY_SLASH] = { name = "/" },
-  [KEY_SEMICOLON] = { name = ";" },
-  [KEY_LEFTBRACKET] = { name = "[" },
-  [KEY_BACKSLASH] = { name = "\\" },
-  [KEY_RIGHTBRACKET] = { name = "]" },
-  [KEY_TILDE] = { name = "`" },
-  [KEY_A] = { name = "A", category = "letter" },
-  [KEY_B] = { name = "B", category = "letter" },
-  [KEY_C] = { name = "C", category = "letter" },
-  [KEY_D] = { name = "D", category = "letter" },
-  [KEY_E] = { name = "E", category = "letter" },
-  [KEY_F] = { name = "F", category = "letter" },
-  [KEY_G] = { name = "G", category = "letter" },
-  [KEY_H] = { name = "H", category = "letter" },
-  [KEY_I] = { name = "I", category = "letter" },
-  [KEY_J] = { name = "J", category = "letter" },
-  [KEY_K] = { name = "K", category = "letter" },
-  [KEY_L] = { name = "L", category = "letter" },
-  [KEY_M] = { name = "M", category = "letter" },
-  [KEY_N] = { name = "N", category = "letter" },
-  [KEY_O] = { name = "O", category = "letter" },
-  [KEY_P] = { name = "P", category = "letter" },
-  [KEY_Q] = { name = "Q", category = "letter" },
-  [KEY_R] = { name = "R", category = "letter" },
-  [KEY_S] = { name = "S", category = "letter" },
-  [KEY_T] = { name = "T", category = "letter" },
-  [KEY_U] = { name = "U", category = "letter" },
-  [KEY_V] = { name = "V", category = "letter" },
-  [KEY_W] = { name = "W", category = "letter" },
-  [KEY_X] = { name = "X", category = "letter" },
-  [KEY_Y] = { name = "Y", category = "letter" },
-  [KEY_Z] = { name = "Z", category = "letter" },
-  [KEY_F1] = { name = "F1", category = "fn" },
-  [KEY_F2] = { name = "F2", category = "fn" },
-  [KEY_F3] = { name = "F3", category = "fn" },
-  [KEY_F4] = { name = "F4", category = "fn" },
-  [KEY_F5] = { name = "F5", category = "fn" },
-  [KEY_F6] = { name = "F6", category = "fn" },
-  [KEY_F7] = { name = "F7", category = "fn" },
-  [KEY_F8] = { name = "F8", category = "fn" },
-  [KEY_F9] = { name = "F9", category = "fn" },
-  [KEY_F10] = { name = "F10", category = "fn" },
-  [KEY_F11] = { name = "F11", category = "fn" },
-  [KEY_F12] = { name = "F12", category = "fn" },
+  [KEY_MINUS] = "-",
+  [KEY_EQUALS] = "=",
+  [KEY_PERIOD] = ".",
+  [KEY_SLASH] = "/",
+  [KEY_SEMICOLON] = ";",
+  [KEY_LEFTBRACKET] = "[",
+  [KEY_BACKSLASH] = "\\",
+  [KEY_RIGHTBRACKET] = "]",
+  [KEY_TILDE] = "`",
+  [KEY_A] = "A",
+  [KEY_B] = "B",
+  [KEY_C] = "C",
+  [KEY_D] = "D",
+  [KEY_E] = "E",
+  [KEY_F] = "F",
+  [KEY_G] = "G",
+  [KEY_H] = "H",
+  [KEY_I] = "I",
+  [KEY_J] = "J",
+  [KEY_K] = "K",
+  [KEY_L] = "L",
+  [KEY_M] = "M",
+  [KEY_N] = "N",
+  [KEY_O] = "O",
+  [KEY_P] = "P",
+  [KEY_Q] = "Q",
+  [KEY_R] = "R",
+  [KEY_S] = "S",
+  [KEY_T] = "T",
+  [KEY_U] = "U",
+  [KEY_V] = "V",
+  [KEY_W] = "W",
+  [KEY_X] = "X",
+  [KEY_Y] = "Y",
+  [KEY_Z] = "Z",
+  [KEY_F1] = "F1",
+  [KEY_F2] = "F2",
+  [KEY_F3] = "F3",
+  [KEY_F4] = "F4",
+  [KEY_F5] = "F5",
+  [KEY_F6] = "F6",
+  [KEY_F7] = "F7",
+  [KEY_F8] = "F8",
+  [KEY_F9] = "F9",
+  [KEY_F10] = "F10",
+  [KEY_F11] = "F11",
+  [KEY_F12] = "F12",
 
-  [KEY_UP] = { name = "Up", category = "arrow" },
-  [KEY_DOWN] = { name = "Down", category = "arrow" },
-  [KEY_RIGHT] = { name = "Right", category = "arrow" },
-  [KEY_LEFT] = { name = "Left", category = "arrow" },
+  [KEY_UP] = "Up",
+  [KEY_DOWN] = "Down",
+  [KEY_RIGHT] = "Right",
+  [KEY_LEFT] = "Left",
 
-  [KEY_0] = { name = "0", category = "number" },
-  [KEY_1] = { name = "1", category = "number" },
-  [KEY_2] = { name = "2", category = "number" },
-  [KEY_3] = { name = "3", category = "number" },
-  [KEY_4] = { name = "4", category = "number" },
-  [KEY_5] = { name = "5", category = "number" },
-  [KEY_6] = { name = "6", category = "number" },
-  [KEY_7] = { name = "7", category = "number" },
-  [KEY_8] = { name = "8", category = "number" },
-  [KEY_9] = { name = "9", category = "number" },
+  [KEY_0] = "0",
+  [KEY_1] = "1",
+  [KEY_2] = "2",
+  [KEY_3] = "3",
+  [KEY_4] = "4",
+  [KEY_5] = "5",
+  [KEY_6] = "6",
+  [KEY_7] = "7",
+  [KEY_8] = "8",
+  [KEY_9] = "9",
 
-  [MOUSEBUTTON_LEFT] = { name = "Mouse Left", category = "mouse" },
-  [MOUSEBUTTON_RIGHT] = { name = "Mouse Right", category = "mouse" },
-  [MOUSEBUTTON_MIDDLE] = { name = "Mouse Middle", category = "mouse" },
-  [1005] = { name = "Mouse Button 4", category = "mouse" },
-  [1006] = { name = "Mouse Button 5", category = "mouse" },
-  [MOUSEBUTTON_SCROLLUP] = { name = "Mouse Scroll Up", category = "mouse" },
-  [MOUSEBUTTON_SCROLLDOWN] = { name = "Mouse Scroll Down", category = "mouse" },
+  [MOUSEBUTTON_LEFT] = "Mouse Left",
+  [MOUSEBUTTON_RIGHT] = "Mouse Right",
+  [MOUSEBUTTON_MIDDLE] = "Mouse Middle",
+  [1005] = "Mouse Button 4",
+  [1006] = "Mouse Button 5",
+  [MOUSEBUTTON_SCROLLUP] = "Mouse Scroll Up",
+  [MOUSEBUTTON_SCROLLDOWN] = "Mouse Scroll Down",
 }
 
 -------
--- A reverse lookup table going from key name to keycode. If you need to go from key name to key info, write
--- `KeybindLib.KEY_INFOTABLE[KeybindLib.KEY_NAME_LOOKUP_TABLE[your_keycode]]`.
--- @see KeybindLib.KEY_INFO_TABLE
-KeybindLib.KEY_NAME_LOOKUP_TABLE = {}
+-- A reverse lookup table going from key name to keycode.
+-- @see KeybindLib.canon_keycode2string
+KeybindLib.canon_string2keycode = {}
 
 do
-  local key2info = KeybindLib.KEY_INFO_TABLE
-  local name2key = KeybindLib.KEY_NAME_LOOKUP_TABLE
-
-  for keycode, info in pairs(key2info) do
-    name2key[info.name] = keycode
+  local tbl = KeybindLib.canon_string2keycode
+  for keycode, name in pairs(KeybindLib.canon_keycode2string) do
+    tbl[name] = keycode
   end
 end
 
@@ -298,6 +296,23 @@ local MOD_RCTRL_BIT = 27
 local MOD_RSHIFT_BIT = 26
 local MOD_RALT_BIT = 25
 local MOD_RSUPER_BIT = 24
+
+KeybindLib.MODIFIER_KEYS = {
+  [KEY_RSHIFT] = { control = "Shift", bit = MOD_LCTRL_BIT },
+  [KEY_LSHIFT] = { control = "Shift", bit = MOD_LSHIFT_BIT },
+  [KEY_RCTRL] = { control = "Control", bit = MOD_LALT_BIT },
+  [KEY_LCTRL] = { control = "Control", bit = MOD_LSUPER_BIT },
+  [KEY_RALT] = { control = "Alt", bit = MOD_RCTRL_BIT },
+  [KEY_LALT] = { control = "Alt", bit = MOD_RSHIFT_BIT },
+  [KEY_LSUPER] = { control = "Super", bit = MOD_RALT_BIT },
+  [KEY_RSUPER] = { control = "Super", bit = MOD_RSUPER_BIT },
+  -- We don't ever use these combined modifier keycodes in a keychord
+  --[[
+  [KEY_ALT] = false,
+  [KEY_CTRL] = false,
+  [KEY_SHIFT] = false,
+  --]]
+}
 
 -------
 -- Compute the modifiers mask pressed at this moment.
@@ -319,22 +334,14 @@ local function TestBit(mask, n)
   return bit.band(bit.rshift(mask, n), 1) == 1
 end
 
-local KEY_NAME_TO_MODIFIER_BIT = {
-  LCtrl = MOD_LCTRL_BIT,
-  LShift = MOD_LSHIFT_BIT,
-  LAlt = MOD_LALT_BIT,
-  LSuper = MOD_LSUPER_BIT,
-  RCtrl = MOD_RCTRL_BIT,
-  RShift = MOD_RSHIFT_BIT,
-  RAlt = MOD_RALT_BIT,
-  RSuper = MOD_RSUPER_BIT,
-}
-
 -------
 -- Parse input mask from a string in the Keychord Format.
 -- @see KeybindLib:InputMaskToString
 function KeybindLib:InputMaskFromString(str)
   -- print("InputMaskFromString(): '"..str.."'")
+
+  local mods_tbl = self.MODIFIER_KEYS
+  local fromstr_tbl = self.canon_string2keycode
 
   local input_mask = 0
   local i = 1
@@ -345,7 +352,10 @@ function KeybindLib:InputMaskFromString(str)
       -- string.sub is gets [start,end] rather than the conventional [start,end)
       -- so we can't avoid doing arithmetic on `pos`, and if it's nil that will error.
       key_name = string.sub(str, i, pos-1)
-      input_mask = bit.bor(input_mask, bit.lshift(1, KEY_NAME_TO_MODIFIER_BIT[key_name]))
+      local mod = mods_tbl[fromstr_tbl[key_name]]
+      if mod then
+        input_mask = bit.bor(input_mask, bit.lshift(1, mod.bit))
+      end
       i = j + 1
     else
       key_name = string.sub(str, i)
@@ -353,42 +363,49 @@ function KeybindLib:InputMaskFromString(str)
     end
   end
 
-  local keycode = self.KEY_NAME_LOOKUP_TABLE[key_name]
-  if keycode then
-    input_mask = bit.bor(input_mask, keycode)
+  local keycode = fromstr_tbl[key_name]
+  if not keycode then
+    keycode = tonumber(key_name)
+    if not keycode then
+      error("Primary key in string '" .. str .. "' is neither a valid key name, nor a keycode")
+    end
   end
+  input_mask = bit.bor(input_mask, bit.band(keycode, 0xFFFF))
 
   return input_mask
 end
 
--------
--- Stringify input mask in the Keychord Format.
--- @see KeybindLib:InputMaskFromString
-function KeybindLib:InputMaskToString(v)
+local function InputMaskToString(v, tostr_tbl)
   local keycode = bit.band(bit.rshift(v, 32), 0xFFFF)
   if keycode == 0 then
     return ""
   end
 
   local pieces = {}
-  local function F(bit, str)
-    if TestBit(v, bit) then
-      table.insert(pieces, str)
+  for mod_keycode, info in pairs(KeybindLib.MODIFIER_KEYS) do
+    if TestBit(v, info.bit) then
+      table.insert(pieces, tostr_tbl[mod_keycode])
     end
   end
-  F(MOD_LCTRL_BIT, "LCtrl")
-  F(MOD_LSHIFT_BIT, "LShift")
-  F(MOD_LALT_BIT, "LAlt")
-  F(MOD_LSUPER_BIT, "LSuper")
-  F(MOD_RCTRL_BIT, "RCtrl")
-  F(MOD_RSHIFT_BIT, "RShift")
-  F(MOD_RALT_BIT, "RAlt")
-  F(MOD_RSUPER_BIT, "RSuper")
 
-  local key_info = self.KEY_INFO_TABLE[keycode]
-  table.insert(pieces, key_info and key_info.name or "<unknown>")
+  local key_name = tostr_tbl[keycode]
+  table.insert(pieces, key_name and key_name or tostring(keycode))
 
   return table.concat(pieces, " + ")
+end
+
+-------
+-- Stringify input mask in the Keychord Format.
+-- @see KeybindLib:InputMaskFromString
+function KeybindLib:InputMaskToString(v)
+  return InputMaskToString(v, self.canon_keycode2string)
+end
+
+-------
+-- Stringify input mask in in the current display language, for humans. This is not in the Keychord Format, and is
+-- NOT compatible with `KeybindLib:InputMaskFromString`.
+function KeybindLib:LocalizeInputMask(v)
+  return InputMaskToString(v, STRINGS.UI.CONTROLSSCREEN.INPUTS[1])
 end
 
 
@@ -439,7 +456,7 @@ function KeybindLib:LoadKeybindMappings()
     -- Greedy and non-greedy also should match the exact same thing, since the repetition cannot match across any k.
     for full_id, mapping in string.gmatch(str, "([^=\r\n]*)=([^\r\n]*)[\r\n]\n?") do
       print("'"..full_id.."' = '" .. mapping .. "'")
-      local keybind = self.keybind_registry[full_id]
+        local keybind = self.keybind_registry[full_id]
       if keybind then
         keybind:SetInputMask(self:InputMaskFromString(mapping))
       end
