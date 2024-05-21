@@ -393,17 +393,7 @@ end
 
 
 
-local keychord_capture_callback = nil
-
-function KeybindLib:BeginKeychordCapture(callback)
-  keychord_capture_callback = callback
-end
-
-function KeybindLib:CancelKeychordCapture()
-  keychord_capture_callback = nil
-end
-
-local function HandleKeyTrigger(keycode)
+local function InputHandler(keycode, down)
   local keybind_list = KeybindLib.keycode_to_keybinds[keycode]
   if not keybind_list then return end
 
@@ -417,39 +407,8 @@ local function HandleKeyTrigger(keycode)
   end
 end
 
-TheInput:AddKeyHandler(function(key, down)
-  if not down then
-    HandleKeyTrigger(key)
-  end
-
-  if not keychord_capture_callback then return end
-
-  -- NOTE: this key handler only takes keyboard inputs
-  -- Keep taking input until a key release
-  local key_info = KeybindLib.KEY_INFO_TABLE[key]
-  if not down and key_info and key_info.category ~= "mod" then
-    local mod_mask = KeybindLib:GetModifiersMaskNow()
-    local input_mask = bit.bor(mod_mask, key)
-
-    keychord_capture_callback(input_mask)
-    keychord_capture_callback = nil
-  end
-end)
-
-TheInput:AddMouseButtonHandler(function(button, down, x, y)
-  if not down then
-    HandleKeyTrigger(button)
-  end
-
-  if not keychord_capture_callback then return end
-  if not down then
-    local mod_mask = KeybindLib:GetModifiersMaskNow()
-    local input_mask = bit.bor(mod_mask, button)
-
-    keychord_capture_callback(input_mask)
-    keychord_capture_callback = nil
-  end
-end)
+TheInput:AddKeyHandler(InputHandler)
+TheInput:AddMouseButtonHandler(InputHandler) -- Ignore the 3rd (x) and 4rd (y) arguments
 
 
 

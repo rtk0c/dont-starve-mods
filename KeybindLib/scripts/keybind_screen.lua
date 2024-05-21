@@ -227,23 +227,25 @@ function OptionsScreen:_MapKeybind(kbd_widget)
   local body_text = STRINGS.UI.CONTROLSSCREEN.CONTROL_SELECT .. "\n\n" .. default_text
   local popup = PopupDialogScreen(kbd_widget.keybind.name, body_text, {})
   popup.dialog.body:SetPosition(0, 0)
+
   popup.OnControl = function(_, control, down) return true end
 
-  TheFrontEnd:PushScreen(popup)
+  local key_capturer = function(_, key, down)
+    -- Keep taking input until a key release
+    local key_info = KeybindLib.KEY_INFO_TABLE[key]
+    if not down and key_info and key_info.category ~= "mod" then
+      local mod_mask = KeybindLib:GetModifiersMaskNow()
+      local input_mask = bit.bor(mod_mask, key)
 
-  -- It appears that on some platforms (Windows, but not Linux, from the machines I have) buttons' .OnClock() callback
-  -- triggers on mouse down, rather than mouse up, so our keychord capturer will finish with the mouse up event
-  -- immediately. Delay 1 frame to work around this.
-  --
-  -- This might be what vanillas' comment "Delaying the MapControl one frame. Done for Steam Deck, but this wont impact
-  -- other systems" in OptionsScreen:_MapControl() mean.
-  self.inst:DoTaskInTime(0, function() 
-    KeybindLib:BeginKeychordCapture(function(input_mask)
       self:_UserChangeKeybind(kbd_widget, input_mask)
       TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
       TheFrontEnd:PopScreen()
-    end)
-  end)
+    end
+  end
+  popup.OnRawKey = key_capturer
+  popup.OnMouseButton = key_capturer
+
+  TheFrontEnd:PushScreen(popup)
 end
 
 local old_ctor = OptionsScreen._ctor
