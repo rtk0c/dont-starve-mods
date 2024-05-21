@@ -318,16 +318,13 @@ KeybindLib.MODIFIER_KEYS = {
 -- Compute the modifiers mask pressed at this moment.
 -- @treturn number A Lua number, with the upper 16 bits filled as the current modifiers mask.
 function KeybindLib:GetModifiersMaskNow()
-  return bit.bor(
-    TheInput:IsKeyDown(KEY_LCTRL) and bit.lshift(1, MOD_LCTRL_BIT) or 0,
-    TheInput:IsKeyDown(KEY_LSHIFT) and bit.lshift(1, MOD_LSHIFT_BIT) or 0,
-    -- FIXME LAlt and RAlt are not being detected right now
-    TheInput:IsKeyDown(KEY_LALT) and bit.lshift(1, MOD_LALT_BIT) or 0,
-    TheInput:IsKeyDown(KEY_LSUPER) and bit.lshift(1, MOD_LSUPER_BIT) or 0,
-    TheInput:IsKeyDown(KEY_RCTRL) and bit.lshift(1, MOD_RCTRL_BIT) or 0,
-    TheInput:IsKeyDown(KEY_RSHIFT) and bit.lshift(1, MOD_RSHIFT_BIT) or 0,
-    TheInput:IsKeyDown(KEY_RALT) and bit.lshift(1, MOD_RALT_BIT) or 0,
-    TheInput:IsKeyDown(KEY_RSUPER) and bit.lshift(1, MOD_RSUPER_BIT) or 0)
+  local res = 0
+  for mod_keycode, info in pairs(self.MODIFIER_KEYS) do
+    if TheInput:IsKeyDown(mod_keycode) then
+      res = bit.bor(res, bit.lshift(1, info.bit))
+    end
+  end
+  return res
 end
 
 local function TestBit(mask, n)
