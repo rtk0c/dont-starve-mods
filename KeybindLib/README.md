@@ -23,7 +23,11 @@ See LDoc comments in [`scripts/keybind.lua`](./scripts/keybind.lua) for how to u
 
 ## Quickstart
 
-Make your mod depend on this with `mod_dependencies` in your `modinfo.lua`, and (if yours is published on Steam Workshop) add [this mod](https://steamcommunity.com/sharedfiles/filedetails/?id=3250212696) as a required item. In your `modmain.lua`,
+Set your `priority` [low enough](./modinfo.lua#L23) such that it loads after KeybindLib.
+Make your mod depend on this with `mod_dependencies` in your `modinfo.lua`[^1].
+If yours is published on Steam Workshop, depend on KeybindLib by using the Add/Remove Required Items button on your item's page, consult your search engine of choice for more details; this mod's steam page is https://steamcommunity.com/sharedfiles/filedetails/?id=3250212696. This makes users subscribing to your item automatically subscribe to KeybindLib as well.
+
+In your `modmain.lua`,
 ```lua
 local modname = GLOBAL.KnownModIndex:GetModActualName(modinfo.name)
 
@@ -64,3 +68,5 @@ And the user can remap your keybind just like vanilla controls.
 - "mod[ifiers] mask" is the upper 16 bits of an input mask, that describes the modifier states.
 - "keycode" is the lower 16 bits of an input mask, that describes the non-modifier key. Matches vanilla's KEY_xxx in `constants.lua`.
 - "key" is any on/off stateful input, so it can be keyboard keys or mouse buttons or controller buttons.
+
+[^1]: Don't Starve's mod loader does not properly handle client-only mods dependencies yet. However it is still nice to declare this information properly, in case one day, this is fixed. https://forums.kleientertainment.com/forums/topic/147510-help-mod_dependecies-isnt-working-for-me-and-i-have-no-idea-why/?do=findComment&comment=1632937
