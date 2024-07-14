@@ -275,13 +275,13 @@ end
 
 local old_Save = OptionsScreen.Save
 function OptionsScreen:Save(cb)
-  old_Save(self, cb)
-
   local reg = KeybindLib.keybind_registry
   for full_id, new_input_mask in pairs(self._mapping_changes) do
     reg[full_id]:SetInputMask(new_input_mask)
   end
   KeybindLib:SaveKeybindMappings()
+  
+  return old_Save(self, cb)
 end
 
 -- No-op for revert changes, just throw away self._mapping_changes is enough
