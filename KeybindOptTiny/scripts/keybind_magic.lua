@@ -16,17 +16,17 @@ local function LocalizeKey(key)
   return G.STRINGS.UI.CONTROLSSCREEN.INPUTS[1][key]
 end
 
-local function UserChangeKeybind(opt_screen, kbd, kw, new_key)
+local function UserChangeKeybind(opt_screen, kw, new_key)
   -- Display changes on screen
   kw.binding_btn:SetText(LocalizeKey(new_key))
-  if kbd.key ~= new_key then
-    _pending_changes[kbd] = new_key
+  if kw.kbd.key ~= new_key then
+    _pending_changes[kw] = new_key
     kw.changed_image:Show()
     if not opt_screen:IsDirty() then
       opt_screen:MakeDirty()
     end
   else
-    _pending_changes[kbd] = nil
+    _pending_changes[kw] = nil
     kw.changed_image:Hide()
   end
 end
@@ -43,6 +43,8 @@ local function MakeKeybindGroup(opt_screen, kbd)
   kw.bg:SetPosition(-60,0)
   kw.bg:SetScale(1.025, 1)
   kw:SetScale(1,1,0.75)
+
+  kw.kbd = kbd
 
   local x = button_x
 
@@ -82,7 +84,7 @@ local function MakeKeybindGroup(opt_screen, kbd)
 
     popup.OnRawKey = function(_, key, down)
       if not down then
-        UserChangeKeybind(opt_screen, kbd, kw, key)
+        UserChangeKeybind(opt_screen, kw, key)
         G.TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
         G.TheFrontEnd:PopScreen()
       end
@@ -98,12 +100,16 @@ local function MakeKeybindGroup(opt_screen, kbd)
 
   local unbinding_btn = kw:AddChild(ImageButton("images/global_redux.xml", "close.tex", "close.tex"))
   unbinding_btn:SetOnClick(function()
-    UserChangeKeybind(opt_screen, kbd, kw, 0)
+    UserChangeKeybind(opt_screen, kw, 0)
   end)
   unbinding_btn:SetPosition(x - 5,0)
   unbinding_btn:SetScale(0.4, 0.4)
   unbinding_btn:SetHoverText(G.STRINGS.UI.CONTROLSSCREEN.UNBIND)
   kw.unbinding_btn = unbinding_btn
+
+  -- OptionsScreen:RefreshControls() assumes the existence of these, add them to make it not crash
+  kw.controlId = 0
+  kw.control = {}
 
   kw.focus_forward = kw.binding_btn
 
@@ -113,7 +119,8 @@ end
 local OptionsScreen = require "screens/redux/optionsscreen"
 local old_OptionsScreen_Save = OptionsScreen.Save
 function OptionsScreen:Save(cb)
-  for kbd, new_key in pairs(_pending_changes) do
+  for kw, new_key in pairs(_pending_changes) do
+    local kbd = kw.kbd
     kbd.key = new_key
     kbd.on_change(new_key)
   end
@@ -123,7 +130,10 @@ function OptionsScreen:Save(cb)
 end
 local old_OptionsScreen_RevertChanges = OptionsScreen.RevertChanges
 function OptionsScreen:RevertChanges()
-  _pending_changes = {}  
+  for kw, new_key in pairs(_pending_changes) do
+    UserChangeKeybind(self, kw, kw.kbd.default_key)
+  end
+  _pending_changes = {}
 
   return old_OptionsScreen_RevertChanges(self)
 end
@@ -137,6 +147,10 @@ AddClassPostConstruct("screens/redux/optionsscreen", function(self)
   local section_title = Text(G.HEADERFONT, 30, modinfo.name)
   section_title:SetHAlign(G.ANCHOR_MIDDLE)
   section_title:SetColour(G.UICOLOURS.GOLD_SELECTED)
+  -- OptionsScreen:RefreshControls() assumes the existence of these, add them to make it not crash
+  section_title.controlId = 0
+  section_title.control = {}
+  section_title.changed_image = { Show = function() end, Hide = function() end }
   table.insert(items, clist:AddChild(section_title))
 
   for _, kbd in ipairs(_keybinds) do
