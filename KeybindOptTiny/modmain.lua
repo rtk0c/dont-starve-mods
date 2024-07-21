@@ -34,16 +34,16 @@ KEYBIND_MAGIC.on_keybinds_changed = function(changed_keybinds)
 end
 
 local function AddKeybind(name, handler)
-  local kbd = modinfo.configuration_options[modinfo.keybind_name2idx[name]]
+  local conf_opt = modinfo.configuration_options[modinfo.keybind_name2idx[name]]
   local curr_keycode = KEYBIND_MAGIC.ParseKeyString(GetModConfigData(name))
-  local def_keycode = KEYBIND_MAGIC.ParseKeyString(kbd.default)
+  local def_keycode = KEYBIND_MAGIC.ParseKeyString(conf_opt.default)
 
   -- Add the initial key handler
   if new_key ~= 0 then
     key_handlers[name] = TheInput:AddKeyDownHandler(curr_keycode, handler)
   end
 
-  KEYBIND_MAGIC.Add(kbd.label, def_keycode, curr_keycode)
+  KEYBIND_MAGIC.Add(conf_opt.label, def_keycode, curr_keycode)
 end
 
 AddKeybind("my_alice", function() print("Alice here!") end)

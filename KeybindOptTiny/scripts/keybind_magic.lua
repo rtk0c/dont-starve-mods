@@ -55,7 +55,7 @@ local function MakeKeybindGroup(opt_screen, kbd)
   local label_width = 375
   local spacing = 15
 
-  local kw = Widget(modinfo.name .. ":" .. kbd.name)
+  local kw = Widget(modinfo.name .. ":" .. kbd.label)
   kw.bg = kw:AddChild(TEMPLATES.ListItemBackground(700, button_height))
   kw.bg:SetPosition(-60,0)
   kw.bg:SetScale(1.025, 1)
@@ -66,7 +66,7 @@ local function MakeKeybindGroup(opt_screen, kbd)
   local x = button_x
 
   local label = kw:AddChild(Text(G.CHATFONT, 28))
-  label:SetString(kbd.name)
+  label:SetString(kbd.label)
   label:SetHAlign(G.ANCHOR_LEFT)
   label:SetColour(G.UICOLOURS.GOLD_UNIMPORTANT)
   label:SetRegionSize(label_width, 50)
@@ -94,7 +94,7 @@ local function MakeKeybindGroup(opt_screen, kbd)
   binding_btn:SetOnClick(function()
     local g_strs = G.STRINGS.UI.CONTROLSSCREEN
     local default_text = string.format(g_strs.DEFAULT_CONTROL_TEXT, LocalizeKey(kbd.default_key))
-    local popup = PopupDialogScreen(kbd.name, g_strs.CONTROL_SELECT .. "\n\n" .. default_text, {})
+    local popup = PopupDialogScreen(kbd.label, g_strs.CONTROL_SELECT .. "\n\n" .. default_text, {})
     popup.dialog.body:SetPosition(0, 0)
 
     popup.OnControl = function(_, control, down) return true end
@@ -185,8 +185,9 @@ KEYBIND_MAGIC = {}
 KEYBIND_MAGIC.StringifyKeycode = StringifyKeycode
 KEYBIND_MAGIC.ParseKeyString = ParseKeyString
 function KEYBIND_MAGIC.Add(name, default_key, key)
+function KEYBIND_MAGIC.Add(label, default_key, key)
   local obj = {
-    name = name,
+    label = label,
     default_key = default_key,
     key = key,
   }
