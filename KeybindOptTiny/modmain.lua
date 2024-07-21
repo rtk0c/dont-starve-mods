@@ -1,7 +1,5 @@
 modimport("scripts/keybind_magic")
 
-local rawget = GLOBAL.rawget
-
 -- ChooseTranslationTable() provided in modindex.lua
 -- Not available outside of modinfo.lua but we still need it
 local function T(tbl)
@@ -41,7 +39,7 @@ local function AddKeybind(id, handler)
     key_handlers[id] = GLOBAL.TheInput:AddKeyDownHandler(curr_keycode, handler)
   end
 
-  KeybindHandler:Add(T(kbd), def_keycode, curr_keycode, function(new_key)
+  KEYBIND_MAGIC.Add(T(kbd), def_keycode, curr_keycode, function(new_key)
     -- Update key handler
     GLOBAL.TheInput.onkeydown:RemoveHandler(key_handlers[id])
     if new_key ~= 0 then

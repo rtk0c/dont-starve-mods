@@ -161,8 +161,9 @@ AddClassPostConstruct("screens/redux/optionsscreen", function(self)
   clist:SetList(items, true)
 end)
 
-KeybindHandler = {}
-function KeybindHandler:Add(name, default_key, key, on_change)
+KEYBIND_MAGIC = {}
+
+function KEYBIND_MAGIC.Add(name, default_key, key, on_change)
   local obj = {
     name = name,
     default_key = default_key,
