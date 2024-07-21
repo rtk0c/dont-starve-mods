@@ -1,4 +1,5 @@
 local G = GLOBAL
+local rawget = G.rawget
 
 local Widget = require "widgets/widget"
 local Text = require "widgets/text"
@@ -9,6 +10,22 @@ local TEMPLATES = require "widgets/redux/templates"
 
 local _keybinds = {}
 local _pending_changes = {}
+
+-- Generate reverse lookup table from the one declared in modinfo.lua for config options
+local keycode2key = { [0] = "KEY_DISABLED" }
+for _, key_option in pairs(modinfo.keys) do
+  local varname = key_option.data
+  if varname ~= "KEY_DISABLED" then
+    keycode2key[rawget(GLOBAL, varname)] = varname
+  end
+end
+
+local function StringifyKeycode(keycode)
+  return keycode2key[keycode]
+end
+local function ParseKeyString(key)
+  return key == "KEY_DISABLED" and 0 or rawget(GLOBAL, key)
+end
 
 local function LocalizeKey(key)
   -- If key is unset, return the string for "- No Bind -"
@@ -119,12 +136,15 @@ end
 local OptionsScreen = require "screens/redux/optionsscreen"
 local old_OptionsScreen_Save = OptionsScreen.Save
 function OptionsScreen:Save(cb)
+  local changed_keybinds = {}
   for kw, new_key in pairs(_pending_changes) do
     local kbd = kw.kbd
+
     kbd.key = new_key
-    kbd.on_change(new_key)
+    table.insert(changed_keybinds, { name = kbd.name, new_key = new_key })
   end
   _pending_changes = {}
+  KEYBIND_MAGIC.on_keybinds_changed(changed_keybinds)
 
   return old_OptionsScreen_Save(self, cb)
 end
@@ -162,13 +182,13 @@ AddClassPostConstruct("screens/redux/optionsscreen", function(self)
 end)
 
 KEYBIND_MAGIC = {}
-
-function KEYBIND_MAGIC.Add(name, default_key, key, on_change)
+KEYBIND_MAGIC.StringifyKeycode = StringifyKeycode
+KEYBIND_MAGIC.ParseKeyString = ParseKeyString
+function KEYBIND_MAGIC.Add(name, default_key, key)
   local obj = {
     name = name,
     default_key = default_key,
     key = key,
-    on_change = on_change
   }
   table.insert(_keybinds, obj)
   return obj

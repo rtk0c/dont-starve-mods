@@ -1,27 +1,7 @@
 modimport("scripts/keybind_magic")
 
--- ChooseTranslationTable() provided in modindex.lua
--- Not available outside of modinfo.lua but we still need it
-local function T(tbl)
-  local locale = GLOBAL.LOC.GetLocaleCode()
-  return tbl[locale] or tbl[1]
-end
-
--- Generate reverse lookup table from the one declared in modinfo.lua for config options
-local keycode2key = { [0] = "KEY_DISABLED" }
-for _, key_option in pairs(modinfo.keys) do
-  local varname = key_option.data
-  if varname ~= "KEY_DISABLED" then
-    keycode2key[rawget(GLOBAL, varname)] = varname
-  end
-end
-
-local function StringifyKeycode(keycode)
-  return keycode2key[keycode]
-end
-local function ParseKeyString(key)
-  return key == "KEY_DISABLED" and 0 or rawget(GLOBAL, key)
-end
+local TheInput = GLOBAL.TheInput
+local KnownModIndex = GLOBAL.KnownModIndex
 
 -- We have now defined keybinds in modinfo.lua
 -- Reify them by assigning a callback to each
@@ -29,33 +9,41 @@ end
 local modactualname = GLOBAL.KnownModIndex:GetModActualName(modinfo.name)
 local key_handlers = {}
 
-local function AddKeybind(id, handler)
-  local kbd = modinfo.keybinds[id]
-  local curr_keycode = ParseKeyString(GetModConfigData(id))
-  local def_keycode = ParseKeyString(kbd._default_key)
+KEYBIND_MAGIC.on_keybinds_changed = function(changed_keybinds)
+  -- Update mod config
+  -- We're assuming that our keybind is never changed when the user has Mod Configuration screen open.
+  -- This is the case for vanilla, but you can never be sure what crazy ideas some mod authors might have.
+  -- Documenting this caveat here just in case.
+  local config = KnownModIndex:LoadModConfigurationOptions(modactualname, true)
+  for _, ck in ipairs(changed_keybinds) do
+    local name = ck.name
+    local new_key = ck.new_key
+
+    -- Update key handler
+    TheInput.onkeydown:RemoveHandler(key_handlers[name])
+    if new_key ~= 0 then
+      key_handlers[name] = TheInput:AddKeyDownHandler(new_key, handler)
+    else
+      key_handlers[name] = nil
+    end
+
+    -- Update value in the config
+    config[modinfo.keybind_name2idx[name]].saved = KEYBIND_MAGIC.StringifyKeycode(new_key)
+  end
+  KnownModIndex:SaveConfigurationOptions(function() end, modactualname, config, true)
+end
+
+local function AddKeybind(name, handler)
+  local kbd = modinfo.configuration_options[modinfo.keybind_name2idx[name]]
+  local curr_keycode = KEYBIND_MAGIC.ParseKeyString(GetModConfigData(name))
+  local def_keycode = KEYBIND_MAGIC.ParseKeyString(kbd.default)
 
   -- Add the initial key handler
   if new_key ~= 0 then
-    key_handlers[id] = GLOBAL.TheInput:AddKeyDownHandler(curr_keycode, handler)
+    key_handlers[name] = TheInput:AddKeyDownHandler(curr_keycode, handler)
   end
 
-  KEYBIND_MAGIC.Add(T(kbd), def_keycode, curr_keycode, function(new_key)
-    -- Update key handler
-    GLOBAL.TheInput.onkeydown:RemoveHandler(key_handlers[id])
-    if new_key ~= 0 then
-      key_handlers[id] = GLOBAL.TheInput:AddKeyDownHandler(new_key, handler)
-    else
-      key_handlers[id] = nil
-    end
-
-    -- Update mod config
-    -- We're assuming that our keybind is never changed when the user has Mod Configuration screen open.
-    -- This is the case for vanilla, but you can never be sure what crazy ideas some mod authors might have.
-    -- Documenting this caveat here just in case.
-    local config = GLOBAL.KnownModIndex:LoadModConfigurationOptions(modactualname, true)
-    config[kbd._config_idx].saved = StringifyKeycode(new_key)
-		GLOBAL.KnownModIndex:SaveConfigurationOptions(function() end, modactualname, config, true)
-  end)
+  KEYBIND_MAGIC.Add(kbd.label, def_keycode, curr_keycode)
 end
 
 AddKeybind("my_alice", function() print("Alice here!") end)

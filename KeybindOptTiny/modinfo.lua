@@ -38,6 +38,7 @@ for i = 1, #keys do
 end
 
 configuration_options = {}
+keybind_name2idx = {} -- custom field
 
 local keybind_list = {
   -- For terseness in this demo, I put extra info into the translation table (first 3 entries here)
@@ -50,18 +51,16 @@ local keybind_list = {
 -- 1. Generate config options
 -- 2. Turn the array into a hashtable
 --    We have to use an array in modinfo.lua, because pairs() isn't available, so iterating a hashtable is not possible
-keybinds = {}
 for i = 1, #keybind_list do
   local kbd = keybind_list[i]
-  local config_idx = #configuration_options + 1
-  configuration_options[config_idx] = {
+  
+  local the_option = {
     name = kbd._name,
     label = T(kbd),
     default = kbd._default_key,
     options = keys,
   }
 
-  keybinds[kbd._name] = kbd
-  kbd._config_idx = config_idx
-  kbd._name = nil
+  configuration_options[config_idx] = the_option
+  keybind_name2idx[kbd._name] = #configuration_options
 end
