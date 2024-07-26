@@ -38,6 +38,8 @@ for i = 1, #keys do
 end
 
 configuration_options = {}
+-- Map from keybind name to index in configuration_options
+-- To iterate all keybinds, do it like this: `for name, idx in pairs(modinfo.keybind_name2idx)`
 keybind_name2idx = {} -- custom field
 
 local declaring_keybinds = {
@@ -53,14 +55,11 @@ local declaring_keybinds = {
 --    We have to use an array in modinfo.lua, because pairs() isn't available, so iterating a hashtable is not possible
 for i = 1, #declaring_keybinds do
   local dk = declaring_keybinds[i]
-  
-  local the_option = {
+  configuration_options[#configuration_options + 1] = {
     name = dk._name,
     label = T(dk),
     default = dk._default_key,
     options = keys,
   }
-
-  configuration_options[config_idx] = the_option
   keybind_name2idx[dk._name] = #configuration_options
 end

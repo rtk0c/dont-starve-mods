@@ -7,9 +7,23 @@ local KnownModIndex = GLOBAL.KnownModIndex
 -- Reify them by assigning a callback to each
 
 local modactualname = GLOBAL.KnownModIndex:GetModActualName(modinfo.name)
+local key_callbacks = {}
+key_callbacks.my_alice = function() print("Alice here!") end
+key_callbacks.my_bob = function() print("Bob here!") end
+key_callbacks.my_carol = function() print("Carol here!") end
+
 local key_handlers = {}
 
+-- Add the initial key handler
+for name, fn in pairs(key_handlers) do
+  local key = KEYBIND_MAGIC.ParseKeyString(GetModConfigData(name))
+  if key ~= 0 then
+    key_handlers[name] = TheInput:AddKeyDownHandler(key, fn)
+  end
+end
+
 KEYBIND_MAGIC.on_keybinds_changed = function(changed_keybinds)
+  -- TODO 直接把这坨同步mod config的移到keybind_magic.lua里算了
   -- Update mod config
   -- We're assuming that our keybind is never changed when the user has Mod Configuration screen open.
   -- This is the case for vanilla, but you can never be sure what crazy ideas some mod authors might have.
@@ -32,20 +46,3 @@ KEYBIND_MAGIC.on_keybinds_changed = function(changed_keybinds)
   end
   KnownModIndex:SaveConfigurationOptions(function() end, modactualname, config, true)
 end
-
-local function AddKeybind(name, handler)
-  local conf_opt = modinfo.configuration_options[modinfo.keybind_name2idx[name]]
-  local curr_keycode = KEYBIND_MAGIC.ParseKeyString(GetModConfigData(name))
-  local def_keycode = KEYBIND_MAGIC.ParseKeyString(conf_opt.default)
-
-  -- Add the initial key handler
-  if new_key ~= 0 then
-    key_handlers[name] = TheInput:AddKeyDownHandler(curr_keycode, handler)
-  end
-
-  KEYBIND_MAGIC.Add(conf_opt.label, def_keycode, curr_keycode)
-end
-
-AddKeybind("my_alice", function() print("Alice here!") end)
-AddKeybind("my_bob", function() print("Bob here!") end)
-AddKeybind("my_carol", function() print("Carol here!") end)
