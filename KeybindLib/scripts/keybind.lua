@@ -15,7 +15,7 @@ KeybindLib = {}
 
 -------
 -- The table containing all keybinds registered to KeybindLib. The array part contains all keybinds, in order of
--- registration. The hash part contains a lookup table from "<modid>:<id>" to the keybind object.
+-- registration. The hash part contains a lookup table from "<modname>:<id>" to the keybind object.
 --
 -- To iterate through all registered keybinds, use `for _, keybind in ipairs(KeybindLib.keybind_registry) do ... end`
 -- which gives the keybinds in order.
@@ -60,12 +60,12 @@ local keybind_metatable = {
 -- Keybind full ID must contain no "=", so that our mapping parser can unambiguously split each line in half, getting
 -- the full ID and mapping out.
 --
--- We can't enforce some valid modid format, since that comes from DST itself.
+-- We can't enforce some valid modname format, since that comes from DST itself.
 -- So we can only cope: escape to get rid of "=", so our parse code won't choke.
 --
 -- We _can_ enforce keybind ID format, so let's do that.
 --
--- (Don't care if modid or keybind ID contains colons, because we're never splitting a full ID apart again, so all
+-- (Don't care if modname or keybind ID contains colons, because we're never splitting a full ID apart again, so all
 -- that matters is we get an unique string from ComputeKeybindFulLID().)
 
 function KeybindLib:IsKeybindIDValid(keybind_id)
@@ -77,15 +77,15 @@ function KeybindLib:IsKeybindIDValid(keybind_id)
   return string.match(keybind_id, "[^%w:/_%-]") == nil
 end
 
-function KeybindLib:ComputeKeybindFullID(modid, keybind_id)
+function KeybindLib:ComputeKeybindFullID(modname, keybind_id)
   -- Assume keybind ID is valid, so that there is no "="
-  return string.gsub(modid, "=", "_") .. ":" .. keybind_id
+  return string.gsub(modname, "=", "_") .. ":" .. keybind_id
 end
 
 -------
 -- @param keybind The keybind object.
 -- @tparam string keybind.id An unique identifier for this keybind.
--- @tparam string keybind.modid Your mod's `modname` as registered in `KnownModIndex`. You can retrieve by calling `KnownModIndex:GetModActualName(modinfo.name)`.
+-- @tparam string keybind.modname Your mod's `modname` as registered in `KnownModIndex`. You can retrieve by calling `KnownModIndex:GetModActualName(modinfo.name)`.
 -- @tparam string keybind.name A human-readable (and preferrably localized) name for this keybind. For dispaly in UI.
 -- @tparam[opt] string keybind.default_mapping The default mapping, in the Keychord Format. See `KeybindLib:InputMaskToString` and `KeybindLib:InputMaskFromString`.
 -- @tparam[opt] func keybind.callback Function to be called when the keybind is triggered. If nil, nothing happens when the keychord is pressed.
@@ -96,15 +96,15 @@ function KeybindLib:RegisterKeybind(keybind)
     error("Invalid keybind ID: must contain only alphanumeric, and _ - : / characters")
   end
 
-  local full_id = self:ComputeKeybindFullID(keybind.modid, keybind.id)
+  local full_id = self:ComputeKeybindFullID(keybind.modname, keybind.id)
   if reg[full_id] then
-    error("A keybind with ID '" .. keybind.id .. "' from mod '" .. keybind.modid .. "' already exists.")
+    error("A keybind with ID '" .. keybind.id .. "' from mod '" .. keybind.modname .. "' already exists.")
   end
 
   setmetatable(keybind, keybind_metatable)
 
-  -- Regular .id and .modid are kept the same, so users can retrieve them for their reasons.
-  -- (e.g. our keybind mapping screen use modid to get mods' fancy name)
+  -- Regular .id and .modname are kept the same, so users can retrieve them for their reasons.
+  -- (e.g. our keybind mapping screen use modname to get mods' fancy name)
   keybind.full_id = full_id -- Cache for faster access
 
   local index = #reg + 1
@@ -129,11 +129,11 @@ function KeybindLib:RegisterKeybind(keybind)
 end
 
 -------
--- @tparam string modid Mod's ID which they keybind came from.
+-- @tparam string modname Mod's ID which they keybind came from.
 -- @tparam string id The keybind's ID to be unregistered.
-function KeybindLib:UnregisterKeybind(modid, id)
+function KeybindLib:UnregisterKeybind(modname, id)
   local reg = self.keybind_registry
-  local keybind = reg[self:ComputeKeybindFullID(modid, id)]
+  local keybind = reg[self:ComputeKeybindFullID(modname, id)]
   if keybind then
     keybind:SetInputMask(0) -- Clear entry in the hook table
     reg[id] = nil

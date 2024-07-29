@@ -200,19 +200,19 @@ function OptionsScreen:Save(cb)
     end
   end
 
-  local modactualname = GLOBAL.KnownModIndex:GetModActualName(modinfo.name)
-  local config = GLOBAL.KnownModIndex:LoadModConfigurationOptions(modactualname, true)
+  local config = GLOBAL.KnownModIndex:LoadModConfigurationOptions(modname, true)
   for kw, new_key in pairs(_pending_changes) do
     local name = kw.keybind_name
 
     -- Notify the mod of a keybind change
     KEYBIND_MAGIC.on_keybind_changed(name, new_key)
-    -- screens/redux/modconfigurationscreen.lua: CollectSettings()
-    -- Note that the spinner's value is collected as `saved`; saved_client/saved_server is produced by KnownModIndex at load time, they do not exist on disk
-    config[keybind_name2idx[name]].saved = StringifyKeycode(new_key)
+    -- Note we don't pass in `config` here, because
+    -- KnownModIndex maintains an internal reference to the current mod configuration table, which is returned by LoadModConfigurationOptions()
+    -- (same as `config`)
+    GLOBAL.KnownModIndex:SetConfigurationOption(modname, name, StringifyKeycode(new_key))
   end
   _pending_changes = {}
-  GLOBAL.KnownModIndex:SaveConfigurationOptions(function() end, modactualname, config, true)
+  GLOBAL.KnownModIndex:SaveConfigurationOptions(function() end, modname, config, modinfo.client_only_mod)
 
   return old_OptionsScreen_Save(self, cb)
 end

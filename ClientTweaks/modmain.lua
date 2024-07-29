@@ -64,14 +64,13 @@ GLOBAL.TheInput:AddKeyHandler(function(key, down)
 end)
 --]]
 
-local modname = GLOBAL.KnownModIndex:GetModActualName(modinfo.name)
-
 GLOBAL.KeybindLib:RegisterKeybind({
   id = "mount_dismount",
   name = "Mount/Dismount Beefalo",
   description = "Hotkey for mounting and dismounting the closest beefalo.",
   default_mapping = "R",
-  modid = modname,
+  -- `modname` is a global variable in the mod environment, same as `GLOBAL.KnownModIndex:GetModActualName(modinfo.name)`
+  modname = modname,
   callback = SafeWrapper(function()
     if not IsInGameplay() then return end
     MountOrDis()
@@ -83,7 +82,7 @@ GLOBAL.KeybindLib:RegisterKeybind({
   name = "Feed Beefalo",
   description = "Feed beefalo with the leftmost food item in inventory.",
   default_mapping = "Mouse Button 4",
-  modid = modname,
+  modname = modname,
   callback = SafeWrapper(function()
     if not IsInGameplay() then return end
     Feed()

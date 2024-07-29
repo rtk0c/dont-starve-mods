@@ -29,15 +29,13 @@ If yours is published on Steam Workshop, depend on KeybindLib by using the Add/R
 
 In your `modmain.lua`,
 ```lua
-local modname = GLOBAL.KnownModIndex:GetModActualName(modinfo.name)
-
 GLOBAL.KeybindLib:RegisterKeybind({
   -- See Notes and Caveats for the requirements of these fields
   id = "my_awesome_keybind",
   name = "Awesome Keybind",
   description = "This is a keybind for my mod. Triggering it does cool things.",
   default_mapping = "LCtrl + H",
-  modid = modname,
+  modname = modname,
   callback = function()
   	GLOBAL.ThePlayer.components.talker:Say("Hello, world!")
   end,
@@ -50,7 +48,7 @@ And the user can remap your keybind just like vanilla controls.
 
 - The `callback` you supply to `RegisterKeybind()` will be called whenever the mapping is pressed, _regardless of context_. You will need to check for HUD state, whether or not `TheSim` is running, etc. yourself to do the correct thing.
 - `callback` may be nil, in which case nothing happens when the player triggers the keybind.
-- Mod ID `modid` has to be the result of `KnownModIndex:GetModActualName(modid.name)`. This is so that it is persistent even if you change your mod's fancy name (the one displayed to the player in the Mods screen, i.e. `modinfo.name`), because it is used to store your keybind mappings on disk. I call it mod ID instead of "modname" to avoid confusion with `modinfo.name`.
+- Mod ID `modname` has to be value of the global variable `modname` in the mod environment (which is the same as `KnownModIndex:GetModActualName(modname.name)`).
 - Keybind `id` can only contain alphanumeric characters or one of `/:-_`. See [`IsKeybindIDValid()`](https://github.com/rtk0c/dont-starve-mods/blob/master/KeybindLib/scripts/keybind.lua#L71-L78). Used to store your keybind mapping, do not localize.
 - Keybind `name` and `description` is shown to the user in Options > Mod Keybinds. Localize them if you can.
 - Keybind `default_mapping` has to be in the format of `[<mod> + [mod + [...]]] <key>`
