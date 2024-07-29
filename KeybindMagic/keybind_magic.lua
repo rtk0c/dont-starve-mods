@@ -206,7 +206,7 @@ function OptionsScreen:Save(cb)
     local name = kw.keybind_name
 
     -- Notify the mod of a keybind change
-    KEYBIND_MAGIC.on_keybind_changed(changed_keybinds)
+    KEYBIND_MAGIC.on_keybind_changed(name, new_key)
     -- screens/redux/modconfigurationscreen.lua: CollectSettings()
     -- Note that the spinner's value is collected as `saved`; saved_client/saved_server is produced by KnownModIndex at load time, they do not exist on disk
     config[keybind_name2idx[name]].saved = StringifyKeycode(new_key)
