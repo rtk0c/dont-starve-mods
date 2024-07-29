@@ -198,6 +198,15 @@ end
 
 local old_OptionsScreen_Save = OptionsScreen.Save
 function OptionsScreen:Save(cb)
+  -- Generate a keybind name -> config option index lookup table
+  local keybind_name2idx = {}
+  for i, conf_opt in ipairs(modinfo.configuration_options) do
+    if conf_opt.is_keybind then
+      keybind_name2idx[conf_opt.name] = i
+    end
+  end
+
+  local modactualname = GLOBAL.KnownModIndex:GetModActualName(modinfo.name)
   local config = GLOBAL.KnownModIndex:LoadModConfigurationOptions(modactualname, true)
   local changed_keybinds = {}
   for kw, new_key in pairs(_pending_changes) do
@@ -207,7 +216,7 @@ function OptionsScreen:Save(cb)
     table.insert(changed_keybinds, { name = name, new_key = new_key })
     -- screens/redux/modconfigurationscreen.lua: CollectSettings()
     -- Note that the spinner's value is collected as `saved`; saved_client/saved_server is produced by KnownModIndex at load time, they do not exist on disk
-    config[modinfo.keybind_name2idx[name]].saved = StringifyKeycode(new_key)
+    config[keybind_name2idx[name]].saved = StringifyKeycode(new_key)
   end
   _pending_changes = {}
   KEYBIND_MAGIC.on_keybinds_changed(changed_keybinds)
@@ -241,18 +250,19 @@ AddClassPostConstruct("screens/redux/optionsscreen", function(self)
   section_title.changed_image = { Show = function() end, Hide = function() end }
   table.insert(items, clist:AddChild(section_title))
 
-  for kbd_name, idx in pairs(modinfo.keybind_name2idx) do
-    table.insert(items, clist:AddChild(MakeKeybindEntry(self, modinfo.configuration_options[idx])))
+  for i, conf_opt in ipairs(modinfo.configuration_options) do
+    if conf_opt.is_keybind then
+      table.insert(items, clist:AddChild(MakeKeybindEntry(self, conf_opt)))
+    end
   end
 
   clist:SetList(items, true)
 end)
 
+
 ---------------------------------
 -- ModConfigurationScreen injects
 -- This seciton is adapted from https://github.com/liolok/RangeIndicator/blob/master/keybind.lua
-
-local inspect = require "inspect"
 
 -- Repalce config options's Spinner with a KeybindButton like the one from OptionsScreen
 AddClassPostConstruct('screens/redux/modconfigurationscreen', function(self)
@@ -288,7 +298,7 @@ AddClassPostConstruct('screens/redux/modconfigurationscreen', function(self)
     for _, v in ipairs(self.config) do
       if v.name == data.option.name then
         -- Skip our logic if this config option is not a keybind
-        if not modinfo.keybind_name2idx[v.name] then return result end
+        if not v.is_keybind then return result end
 
         ks.default_key = ParseKeyString(v.default)
         ks.initial_key = ParseKeyString(data.initial_value)

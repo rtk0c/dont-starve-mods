@@ -38,29 +38,27 @@ for i = 1, #keys do
   }
 end
 
-configuration_options = {}
--- Map from keybind name to index in configuration_options
--- To iterate all keybinds, do it like this: `for name, idx in pairs(modinfo.keybind_name2idx)`
-keybind_name2idx = {} -- custom field
-
-local declaring_keybinds = {
-  -- For terseness in this demo, I put extra info into the translation table (first 3 entries here)
-  -- In practice you should probably take them out
-  { _name = "my_alice",   _default_key = "KEY_F",   "Alice", zh="爱丽丝", zht="愛麗絲" },
-  { _name = "my_bob",     _default_key = "KEY_G",   "Bob",   zh="鲍勃",   zht="鮑勃" },
-  { _name = "my_carol",   _default_key = "KEY_H",   "Carol", zh="卡罗",   zht="卡羅" },
-}
--- Do 2 things:
--- 1. Generate config options
--- 2. Turn the array into a hashtable
---    We have to use an array in modinfo.lua, because pairs() isn't available, so iterating a hashtable is not possible
-for i = 1, #declaring_keybinds do
-  local dk = declaring_keybinds[i]
-  configuration_options[#configuration_options + 1] = {
-    name = dk._name,
-    label = T(dk),
-    default = dk._default_key,
+configuration_options = {
+  {
+    name = "my_alice",
+    label = T({"Alice", zh="爱丽丝", zht="愛麗絲"}),
+    default = "KEY_F",
     options = keys,
-  }
-  keybind_name2idx[dk._name] = #configuration_options
-end
+    -- Custom field, keybind_magic.lua reads this to identify keybinds out of all the configuration options
+    is_keybind = true,
+  },
+  {
+    name = "my_bob",
+    label = T({"Bob", zh="鲍勃", zht="鮑勃"}),
+    default = "KEY_G",
+    options = keys,
+    is_keybind = true,
+  },
+  {
+    name = "my_carol",
+    label = T({"Carol", zh="卡罗", zht="卡羅"}),
+    default = "KEY_H",
+    options = keys,
+    is_keybind = true,
+  },
+}
