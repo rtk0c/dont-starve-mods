@@ -1,3 +1,16 @@
+-- Developed by rtk0c on GitHub and others
+-- https://github.com/rtk0c/dont-starve-mods/tree/master/KeybindMagic
+--
+-- It is not required, however very nice, to indicate so if you redistribute a
+-- copy of this software if it contains changes not a part of the above source.
+--
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software to use, copy, modify, merge, publish, distribute without
+-- limitation, subject to the following conditions:
+-- 
+-- The above permission and source notice shall be included in all copies or
+-- substantial portions of the Software.
+
 local G = GLOBAL
 local rawget = G.rawget
 
