@@ -3,22 +3,28 @@ modimport("scripts/keybind_magic")
 local TheInput = GLOBAL.TheInput
 local KnownModIndex = GLOBAL.KnownModIndex
 
--- We have now defined keybinds in modinfo.lua
--- Reify them by assigning a callback to each
-
 local modactualname = GLOBAL.KnownModIndex:GetModActualName(modinfo.name)
-local key_callbacks = {}
-key_callbacks.my_alice = function() print("Alice here!") end
-key_callbacks.my_bob = function() print("Bob here!") end
-key_callbacks.my_carol = function() print("Carol here!") end
 
-local key_handlers = {}
+-- This is a demo of how to work with keybind_magic.lua to have key-down handlers for all the keybinds.
+-- Of course, you're free to do anything with the keybinds' bound keys. All keybind_magic.lua does is add an interface
+-- for the players for rebind them.
+
+-- The keybinds themselves are defined in modinfo.lua
+
+-- Map from keybind name to a callback to be called when the keybind is pressed
+local keybind_callbacks = {}
+keybind_callbacks.my_alice = function() print("Alice here!") end
+keybind_callbacks.my_bob = function() print("Bob here!") end
+keybind_callbacks.my_carol = function() print("Carol here!") end
+
+-- Map from keybind name to the event handler we've registered to TheInput
+local registered_key_handlers = {}
 
 -- Add the initial key handler
-for name, fn in pairs(key_handlers) do
+for name, cb in pairs(keybind_callbacks) do
   local key = KEYBIND_MAGIC.ParseKeyString(GetModConfigData(name))
   if key ~= 0 then
-    key_handlers[name] = TheInput:AddKeyDownHandler(key, fn)
+    registered_key_handlers[name] = TheInput:AddKeyDownHandler(key, cb)
   end
 end
 
@@ -34,11 +40,11 @@ KEYBIND_MAGIC.on_keybinds_changed = function(changed_keybinds)
     local new_key = ck.new_key
 
     -- Update key handler
-    TheInput.onkeydown:RemoveHandler(key_handlers[name])
+    TheInput.onkeydown:RemoveHandler(registered_key_handlers[name])
     if new_key ~= 0 then
-      key_handlers[name] = TheInput:AddKeyDownHandler(new_key, handler)
+      registered_key_handlers[name] = TheInput:AddKeyDownHandler(new_key, handler)
     else
-      key_handlers[name] = nil
+      registered_key_handlers[name] = nil
     end
 
     -- Update value in the config
