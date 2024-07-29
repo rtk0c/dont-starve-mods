@@ -56,7 +56,7 @@ end
 KEYBIND_MAGIC.LocalizeKey = LocalizeKey
 
 
-local KeybindSetter = Class(Widget, function(self, style, width, height, text_size)
+local KeybindSetter = Class(Widget, function(self, width, height, text_size)
   Widget._ctor(self, modname .. ":KeybindSetter")
   local spacing = 15
 
@@ -84,15 +84,12 @@ local KeybindSetter = Class(Widget, function(self, style, width, height, text_si
   binding_btn:SetTextSize(text_size)
   binding_btn:SetOnClick(function() self:PopupKeyBindDialog() end)
 
-  local unbinding_btn
-  if style == "unbinding_btn" then
-    unbinding_btn = self:AddChild(ImageButton("images/global_redux.xml", "close.tex", "close.tex"))
-    self.unbinding_btn = unbinding_btn
-    unbinding_btn:SetPosition(width/2 + spacing - 5, 0)
-    unbinding_btn:SetScale(0.4, 0.4)
-    unbinding_btn:SetHoverText(G.STRINGS.UI.CONTROLSSCREEN.UNBIND)
-    unbinding_btn:SetOnClick(function() self:RebindTo(0) end)
-  end
+  local unbinding_btn = self:AddChild(ImageButton("images/global_redux.xml", "close.tex", "close.tex"))
+  self.unbinding_btn = unbinding_btn
+  unbinding_btn:SetPosition(width/2 + spacing - 5, 0)
+  unbinding_btn:SetScale(0.4, 0.4)
+  unbinding_btn:SetHoverText(G.STRINGS.UI.CONTROLSSCREEN.UNBIND)
+  unbinding_btn:SetOnClick(function() self:RebindTo(0) end)
 
   self.focus_forward = binding_btn
 end)
@@ -116,23 +113,7 @@ function KeybindSetter:PopupKeyBindDialog()
     .. '\n\n'
     .. string.format(G.STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT, LocalizeKey(self.default_key))
 
-  local buttons = {
-    {
-      text = G.STRINGS.UI.MODSSCREEN.DISABLE,
-      cb = function()
-        self:RebindTo(0)
-        TheFrontEnd:PopScreen()
-      end,
-    },
-    {
-      text = G.STRINGS.UI.CONTROLSSCREEN.CANCEL,
-      cb = function()
-        TheFrontEnd:PopScreen()
-      end,
-    },
-  }
-
-  local dialog = PopupDialog(self.title, body_text, buttons)
+  local dialog = PopupDialog(self.title, body_text, {})
   dialog.OnRawKey = function(_, key, down)
     if down then return end -- wait for releasing valid key
     self:RebindTo(key)
@@ -187,7 +168,7 @@ local function MakeKeybindEntry(opt_screen, config_option)
   label:SetPosition(x, 0)
   label:SetClickable(false)
 
-  local keybind_setter = kw:AddChild(KeybindSetter("unbinding_btn", button_width, button_height, 30))
+  local keybind_setter = kw:AddChild(KeybindSetter(button_width, button_height, 30))
   kw.keybind_setter = keybind_setter
   local curr_key = ParseKeyString(GetModConfigData(config_option.name))
   keybind_setter.default_key = ParseKeyString(config_option.default)
@@ -278,14 +259,15 @@ end)
 -- Repalce config options's Spinner with a KeybindButton like the one from OptionsScreen
 AddClassPostConstruct('screens/redux/modconfigurationscreen', function(self)
   if self.modname ~= modname then return end -- avoid messing up other mods
-  
-  local button_width = 225 -- screens/redux/modconfigurationscreen.lua: spinner_width
+
+  -- Subtracted 25 from the original 225 to fit our unbinding button on the right side
+  local button_width = 200 -- screens/redux/modconfigurationscreen.lua: spinner_width
   local button_height = 40 -- screens/redux/modconfigurationscreen.lua: item_height
   local text_size = 25 -- screens/redux/modconfigurationscreen.lua: same as LabelSpinner's default
   local widget_name = modname .. ":KeybindButton" -- avoid being messed up by other mods
 
   for _, widget in ipairs(self.options_scroll_list.widgets_to_update) do
-    local ks = KeybindSetter("", button_width, button_height, text_size)
+    local ks = KeybindSetter(button_width, button_height, text_size)
     ks.on_rebind = function(new_key)
       local new_key_str = StringifyKeycode(new_key)
       if new_key_str ~= widget.opt.data.initial_value then self:MakeDirty() end
