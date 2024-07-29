@@ -48,12 +48,12 @@ local function ParseKeyString(key)
 end
 KEYBIND_MAGIC.ParseKeyString = ParseKeyString
 
-local function LocalizeKey(key)
+local function LocalizeKeyString(key)
   -- If key is unset, return the string for "- No Bind -"
   if key == 0 then return G.STRINGS.UI.CONTROLSSCREEN.INPUTS[9][2] end
   return G.STRINGS.UI.CONTROLSSCREEN.INPUTS[1][key]
 end
-KEYBIND_MAGIC.LocalizeKey = LocalizeKey
+KEYBIND_MAGIC.LocalizeKeyString = LocalizeKeyString
 
 
 local KeybindSetter = Class(Widget, function(self, width, height, text_size)
@@ -80,7 +80,7 @@ local KeybindSetter = Class(Widget, function(self, width, height, text_size)
   binding_btn:SetTextColour(G.UICOLOURS.GOLD_CLICKABLE)
   binding_btn:SetTextFocusColour(G.UICOLOURS.GOLD_FOCUS)
   binding_btn:SetFont(G.CHATFONT)
-  binding_btn:SetText(LocalizeKey(initial_key))
+  binding_btn:SetText(LocalizeKeyString(initial_key))
   binding_btn:SetTextSize(text_size)
   binding_btn:SetOnClick(function() self:PopupKeyBindDialog() end)
 
@@ -95,7 +95,7 @@ local KeybindSetter = Class(Widget, function(self, width, height, text_size)
 end)
 
 function KeybindSetter:RebindTo(new_key)
-  self.binding_btn:SetText(LocalizeKey(new_key))
+  self.binding_btn:SetText(LocalizeKeyString(new_key))
   self.on_rebind(new_key)
   if new_key == self.initial_key then
     self.changed_image:Hide()
@@ -111,7 +111,7 @@ end
 function KeybindSetter:PopupKeyBindDialog()
   local body_text = G.STRINGS.UI.CONTROLSSCREEN.CONTROL_SELECT
     .. '\n\n'
-    .. string.format(G.STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT, LocalizeKey(self.default_key))
+    .. string.format(G.STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT, LocalizeKeyString(self.default_key))
 
   local dialog = PopupDialog(self.title, body_text, {})
   dialog.OnRawKey = function(_, key, down)
@@ -132,26 +132,17 @@ end
 -- Making this a field is much more work to avoid conflicts between mods
 local _pending_changes = {}
 
-local function UserChangeKeybind(opt_screen, kw, new_key)
-  if kw.keybind_setter.initial_key == new_key then
-    _pending_changes[kw] = nil
-  else
-    _pending_changes[kw] = new_key
-    if not opt_screen:IsDirty() then
-      opt_screen:MakeDirty()
-    end
-  end
-end
-
 -- @tparam OptionsScreen opt_screen The OptionsScreen instance that this keybind entry is to be a child to.
 -- @tparam table config_option The entry from modinfo.configuration_options corresponding to this keybind entry.
-local function MakeKeybindEntry(opt_screen, config_option)
+local function MakeKeybindControlEntry(opt_screen, config_option)
   local x = -371 -- x coord of the left edge
   local button_width = 250
   local button_height = 48
   local label_width = 375
   local spacing = 15
 
+  -- "kw" for "Keybind Widget"
+  -- This is a reminiscient from the KeybindLib code, but "ke" is a much less unique combination, we keep it
   local kw = Widget(modname .. ":KeybindEntry")
   kw.bg = kw:AddChild(TEMPLATES.ListItemBackground(700, button_height))
   kw.bg:SetPosition(-60, 0)
@@ -174,7 +165,16 @@ local function MakeKeybindEntry(opt_screen, config_option)
   keybind_setter.default_key = ParseKeyString(config_option.default)
   keybind_setter.initial_key = curr_key
   keybind_setter:RebindTo(curr_key)
-  keybind_setter.on_rebind = function(new_key) UserChangeKeybind(opt_screen, kw, new_key) end
+  keybind_setter.on_rebind = function(new_key)
+    if kw.keybind_setter.initial_key == new_key then
+      _pending_changes[kw] = nil
+    else
+      _pending_changes[kw] = new_key
+      if not opt_screen:IsDirty() then
+        opt_screen:MakeDirty()
+      end
+    end
+  end
   x = x + label_width/2 + spacing + button_width/2
   keybind_setter:SetPosition(x, 0)
 
@@ -244,7 +244,7 @@ AddClassPostConstruct("screens/redux/optionsscreen", function(self)
 
   for i, conf_opt in ipairs(modinfo.configuration_options) do
     if conf_opt.is_keybind then
-      table.insert(items, clist:AddChild(MakeKeybindEntry(self, conf_opt)))
+      table.insert(items, clist:AddChild(MakeKeybindControlEntry(self, conf_opt)))
     end
   end
 
@@ -267,6 +267,7 @@ AddClassPostConstruct('screens/redux/modconfigurationscreen', function(self)
   local widget_name = modname .. ":KeybindButton" -- avoid being messed up by other mods
 
   for _, widget in ipairs(self.options_scroll_list.widgets_to_update) do
+    -- "ks" for "Keybind Setter"
     local ks = KeybindSetter(button_width, button_height, text_size)
     ks.on_rebind = function(new_key)
       local new_key_str = StringifyKeycode(new_key)
