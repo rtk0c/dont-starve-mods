@@ -1,7 +1,6 @@
 modimport("keybind_magic")
 
 local TheInput = GLOBAL.TheInput
-local KnownModIndex = GLOBAL.KnownModIndex
 
 local modactualname = GLOBAL.KnownModIndex:GetModActualName(modinfo.name)
 
@@ -29,12 +28,9 @@ for name, cb in pairs(keybind_callbacks) do
 end
 
 KEYBIND_MAGIC.on_keybinds_changed = function(changed_keybinds)
-  -- TODO 直接把这坨同步mod config的移到keybind_magic.lua里算了
-  -- Update mod config
   -- We're assuming that our keybind is never changed when the user has Mod Configuration screen open.
   -- This is the case for vanilla, but you can never be sure what crazy ideas some mod authors might have.
   -- Documenting this caveat here just in case.
-  local config = KnownModIndex:LoadModConfigurationOptions(modactualname, true)
   for _, ck in ipairs(changed_keybinds) do
     local name = ck.name
     local new_key = ck.new_key
@@ -46,9 +42,5 @@ KEYBIND_MAGIC.on_keybinds_changed = function(changed_keybinds)
     else
       registered_key_handlers[name] = nil
     end
-
-    -- Update value in the config
-    config[modinfo.keybind_name2idx[name]].saved = KEYBIND_MAGIC.StringifyKeycode(new_key)
   end
-  KnownModIndex:SaveConfigurationOptions(function() end, modactualname, config, true)
 end
