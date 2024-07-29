@@ -24,17 +24,12 @@ for name, cb in pairs(keybind_callbacks) do
   end
 end
 
-KEYBIND_MAGIC.on_keybinds_changed = function(changed_keybinds)
-  for _, ck in ipairs(changed_keybinds) do
-    local name = ck.name
-    local new_key = ck.new_key
-
-    -- Update key handler to the newly bound key
-    TheInput.onkeydown:RemoveHandler(registered_key_handlers[name])
-    if new_key ~= 0 then
-      registered_key_handlers[name] = TheInput:AddKeyDownHandler(new_key, keybind_callbacks[name])
-    else
-      registered_key_handlers[name] = nil
-    end
+KEYBIND_MAGIC.on_keybind_changed = function(name, new_key)
+  -- Update key handler to the newly bound key
+  TheInput.onkeydown:RemoveHandler(registered_key_handlers[name])
+  if new_key ~= 0 then
+    registered_key_handlers[name] = TheInput:AddKeyDownHandler(new_key, keybind_callbacks[name])
+  else
+    registered_key_handlers[name] = nil
   end
 end
