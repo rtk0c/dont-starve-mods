@@ -1,6 +1,7 @@
-name = "KeybindOptTiny Test"
+name = "KeybindMagic Demo Mod"
 author = "rtk0c"
-description = "test mod"
+description = [[Demo mod for keybind_magic.lua
+https://github.com/rtk0c/dont-starve-mods/tree/master/KeybindMagic]]
 version = "1.0"
 
 dont_starve_compatible = false
