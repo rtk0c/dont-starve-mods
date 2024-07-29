@@ -240,10 +240,11 @@ AddClassPostConstruct("screens/redux/optionsscreen", function(self)
   clist:SetList(items, true)
 end)
 
-local inspect = require "inspect"
 ---------------------------------
 -- ModConfigurationScreen injects
 -- This seciton is adapted from https://github.com/liolok/RangeIndicator/blob/master/keybind.lua
+
+local inspect = require "inspect"
 
 -- Repalce config options's Spinner with a KeybindButton like the one from OptionsScreen
 AddClassPostConstruct('screens/redux/modconfigurationscreen', function(self)
@@ -257,9 +258,10 @@ AddClassPostConstruct('screens/redux/modconfigurationscreen', function(self)
   for _, widget in ipairs(self.options_scroll_list.widgets_to_update) do
     local ks = KeybindSetter("", button_width, button_height, text_size)
     ks.on_rebind = function(new_key)
-      if new_key ~= widget.opt.data.initial_value then self:MakeDirty() end
-      self.options[widget.real_index].value = new_key
-      widget.opt.data.selected_value = new_key
+      local new_key_str = StringifyKeycode(new_key)
+      if new_key_str ~= widget.opt.data.initial_value then self:MakeDirty() end
+      self.options[widget.real_index].value = new_key_str
+      widget.opt.data.selected_value = new_key_str
       widget:ApplyDescription()
     end
     ks:Hide()
@@ -272,12 +274,13 @@ AddClassPostConstruct('screens/redux/modconfigurationscreen', function(self)
   local OldApplyDataToWidget = self.options_scroll_list.update_fn
   self.options_scroll_list.update_fn = function(context, widget, data, ...)
     local result = OldApplyDataToWidget(context, widget, data, ...)
-    local ks = widget.opt[keybind_button]
+    local ks = widget.opt[widget_name]
     if not (ks and data and not data.is_header) then return result end
 
     for _, v in ipairs(self.config) do
       if v.name == data.option.name then
-        -- if not modinfo.keybind_name2idx[v.name] then return result end
+        -- Skip our logic if this config option is not a keybind
+        if not modinfo.keybind_name2idx[v.name] then return result end
 
         ks.default_key = ParseKeyString(v.default)
         ks.initial_key = ParseKeyString(data.initial_value)
