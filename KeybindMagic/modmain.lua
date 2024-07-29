@@ -1,4 +1,4 @@
-modimport("scripts/keybind_magic")
+modimport("keybind_magic")
 
 local TheInput = GLOBAL.TheInput
 local KnownModIndex = GLOBAL.KnownModIndex
