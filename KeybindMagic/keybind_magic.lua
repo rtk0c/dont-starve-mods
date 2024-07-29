@@ -27,7 +27,7 @@ local keycode2key = { [0] = "KEY_DISABLED" }
 for _, key_option in pairs(modinfo.keys) do
   local varname = key_option.data
   if varname ~= "KEY_DISABLED" then
-    keycode2key[rawget(GLOBAL, varname)] = varname
+    keycode2key[rawget(G, varname)] = varname
   end
 end
 
@@ -44,7 +44,7 @@ end
 KEYBIND_MAGIC.StringifyKeycode = StringifyKeycode
 
 local function ParseKeyString(key)
-  return key == "KEY_DISABLED" and 0 or rawget(GLOBAL, key)
+  return key == "KEY_DISABLED" and 0 or rawget(G, key)
 end
 KEYBIND_MAGIC.ParseKeyString = ParseKeyString
 
@@ -113,9 +113,16 @@ function KeybindSetter:PopupKeyBindDialog()
     .. '\n\n'
     .. string.format(G.STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT, LocalizeKeyString(self.default_key))
 
-  local dialog = PopupDialog(self.title, body_text, {})
+  local dialog = PopupDialog(self.title, body_text, {
+    {
+      text = G.STRINGS.UI.CONTROLSSCREEN.CANCEL,
+      cb = function()
+        TheFrontEnd:PopScreen()
+      end,
+    },
+  })
   dialog.OnRawKey = function(_, key, down)
-    if down then return end -- wait for releasing valid key
+    if down or not keycode2key[key] then return end -- wait for releasing valid key
     self:RebindTo(key)
     TheFrontEnd:PopScreen()
     TheFrontEnd:GetSound():PlaySound('dontstarve/HUD/click_move')
@@ -200,7 +207,7 @@ function OptionsScreen:Save(cb)
     end
   end
 
-  local config = GLOBAL.KnownModIndex:LoadModConfigurationOptions(modname, true)
+  local config = G.KnownModIndex:LoadModConfigurationOptions(modname, true)
   for kw, new_key in pairs(_pending_changes) do
     local name = kw.keybind_name
 
@@ -209,10 +216,10 @@ function OptionsScreen:Save(cb)
     -- Note we don't pass in `config` here, because
     -- KnownModIndex maintains an internal reference to the current mod configuration table, which is returned by LoadModConfigurationOptions()
     -- (same as `config`)
-    GLOBAL.KnownModIndex:SetConfigurationOption(modname, name, StringifyKeycode(new_key))
+    G.KnownModIndex:SetConfigurationOption(modname, name, StringifyKeycode(new_key))
   end
   _pending_changes = {}
-  GLOBAL.KnownModIndex:SaveConfigurationOptions(function() end, modname, config, modinfo.client_only_mod)
+  G.KnownModIndex:SaveConfigurationOptions(function() end, modname, config, modinfo.client_only_mod)
 
   return old_OptionsScreen_Save(self, cb)
 end
