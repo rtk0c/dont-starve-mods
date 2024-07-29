@@ -16,20 +16,23 @@ keybind_callbacks.my_carol = function() print("Carol here!") end
 
 local registered_key_handlers = {}
 
--- Add the initial key handler
-for name, cb in pairs(keybind_callbacks) do
-  local key = KEYBIND_MAGIC.ParseKeyString(GetModConfigData(name))
-  if key ~= 0 then
-    registered_key_handlers[name] = TheInput:AddKeyDownHandler(key, cb)
-  end
-end
-
-KEYBIND_MAGIC.on_keybind_changed = function(name, new_key)
+local function UpdateKeyHandler(name, new_key)
   -- Update key handler to the newly bound key
-  TheInput.onkeydown:RemoveHandler(registered_key_handlers[name])
+  local old_handler = registered_key_handlers[name]
+  if old_handler then
+    old_handler:Remove()
+  end
+
   if new_key ~= 0 then
     registered_key_handlers[name] = TheInput:AddKeyDownHandler(new_key, keybind_callbacks[name])
   else
     registered_key_handlers[name] = nil
   end
+end
+
+KEYBIND_MAGIC.on_keybind_changed = UpdateKeyHandler
+
+-- Add the initial key handler
+for name, _ in pairs(keybind_callbacks) do
+  UpdateKeyHandler(name, KEYBIND_MAGIC.ParseKeyString(GetModConfigData(name)))
 end
