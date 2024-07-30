@@ -147,7 +147,11 @@ function OptionsScreen:_BuildModKeybinds()
       kw.binding_btn:SetFont(CHATFONT)
       kw.binding_btn:SetTextSize(30)
       kw.binding_btn:SetPosition(x,0)
-      kw.binding_btn:SetOnClick(function() self:_MapKeybind(kw) end)
+      kw.binding_btn:SetOnClick(function()
+        -- On Windows (but not Linux, macOS), the mouse click to binding_btn will immediately be caught by the popup
+        -- Delay by 1 frame to workaround this issue
+        self.inst:DoTaskInTime(0, function() self:_MapKeybind(kw) end)
+      end)
       x = x + button_width/2 + spacing
 
       kw.binding_btn:SetHelpTextMessage(STRINGS.UI.CONTROLSSCREEN.CHANGEBIND)

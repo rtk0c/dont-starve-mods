@@ -319,6 +319,9 @@ KeybindLib.MODIFIER_KEYS = {
 -- @treturn number A Lua number, with the upper 16 bits filled as the current modifiers mask.
 function KeybindLib:GetModifiersMaskNow()
   local res = 0
+  -- TODO it seems like on linux (wayland, DST runs in xwayland; don't know about native X11)
+  --      right alt, right shift, and _sometimes_ right control can't be detected
+  --      it seems like whether or not super works depends on the window manager 
   for mod_keycode, info in pairs(self.MODIFIER_KEYS) do
     if TheInput:IsKeyDown(mod_keycode) then
       res = bit.bor(res, bit.lshift(1, info.bit))
