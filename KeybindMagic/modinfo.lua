@@ -42,23 +42,22 @@ configuration_options = {
   {
     name = "my_alice",
     label = T({"Alice", zh="爱丽丝", zht="愛麗絲"}),
+    hover = "Test hover text",
     default = "KEY_F",
+    -- A config option is considered a keybind if its `option` property is set to `modinfo.keys`
     options = keys,
-    -- Custom field, keybind_magic.lua reads this to identify keybinds out of all the configuration options
-    is_keybind = true,
   },
   {
     name = "my_bob",
     label = T({"Bob", zh="鲍勃", zht="鮑勃"}),
+    hover = "Test longer longer longer longer longer longer longer longer longer longer hover text",
     default = "KEY_G",
     options = keys,
-    is_keybind = true,
   },
   {
     name = "my_carol",
     label = T({"Carol", zh="卡罗", zht="卡羅"}),
     default = "KEY_H",
     options = keys,
-    is_keybind = true,
   },
 }

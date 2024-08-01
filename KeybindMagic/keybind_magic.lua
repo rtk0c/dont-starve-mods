@@ -12,6 +12,7 @@
 -- substantial portions of the Software.
 
 local G = GLOBAL
+local S = G.STRINGS.UI.CONTROLSSCREEN
 local rawget = G.rawget
 
 local Widget = require "widgets/widget"
@@ -32,7 +33,6 @@ for _, key_option in pairs(modinfo.keys) do
 end
 
 
-
 -----------------------------
 -- Helpers and exported stuff
 
@@ -50,20 +50,20 @@ KEYBIND_MAGIC.ParseKeyString = ParseKeyString
 
 local function LocalizeKeyString(key)
   -- If key is unset, return the string for "- No Bind -"
-  if key == 0 then return G.STRINGS.UI.CONTROLSSCREEN.INPUTS[9][2] end
-  return G.STRINGS.UI.CONTROLSSCREEN.INPUTS[1][key]
+  if key == 0 then return S.INPUTS[9][2] end
+  return S.INPUTS[1][key]
 end
 KEYBIND_MAGIC.LocalizeKeyString = LocalizeKeyString
 
 
 local KeybindSetter = Class(Widget, function(self, width, height, text_size)
   Widget._ctor(self, modname .. ":KeybindSetter")
-  local spacing = 15
 
   -- Fields:
   -- These must be set separately after newing
   -- This is done because in the ModConfigurationScreen inject, we only get access to the config value after replacing widgets, so they can't be constructor arguments
 
+  self.title = ""
   self.initial_key = 0
   self.default_key = 0
   self.on_rebind = function() end
@@ -86,9 +86,9 @@ local KeybindSetter = Class(Widget, function(self, width, height, text_size)
 
   local unbinding_btn = self:AddChild(ImageButton("images/global_redux.xml", "close.tex", "close.tex"))
   self.unbinding_btn = unbinding_btn
-  unbinding_btn:SetPosition(width/2 + spacing - 5, 0)
+  unbinding_btn:SetPosition(width/2 + 10, 0)
   unbinding_btn:SetScale(0.4, 0.4)
-  unbinding_btn:SetHoverText(G.STRINGS.UI.CONTROLSSCREEN.UNBIND)
+  unbinding_btn:SetHoverText(S.UNBIND)
   unbinding_btn:SetOnClick(function() self:RebindTo(0) end)
 
   self.focus_forward = binding_btn
@@ -109,13 +109,13 @@ function KeybindSetter:RevertChanges()
 end
 
 function KeybindSetter:PopupKeyBindDialog()
-  local body_text = G.STRINGS.UI.CONTROLSSCREEN.CONTROL_SELECT
+  local body_text = S.CONTROL_SELECT
     .. '\n\n'
-    .. string.format(G.STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT, LocalizeKeyString(self.default_key))
+    .. string.format(S.DEFAULT_CONTROL_TEXT, LocalizeKeyString(self.default_key))
 
   local dialog = PopupDialog(self.title, body_text, {
     {
-      text = G.STRINGS.UI.CONTROLSSCREEN.CANCEL,
+      text = S.CANCEL,
       cb = function()
         TheFrontEnd:PopScreen()
       end,
@@ -139,22 +139,38 @@ end
 -- Making this a field is much more work to avoid conflicts between mods
 local _pending_changes = {}
 
+local Header = Class(Widget, function(self, title)
+  Widget._ctor(self, modname .. ':Header')
+  self.txt = self:AddChild(Text(G.HEADERFONT, 30, title, G.UICOLOURS.GOLD_SELECTED))
+  self.txt:SetPosition(-60, 0)
+  self.bg = self:AddChild(TEMPLATES.ListItemBackground(700, 48)) -- only to be more scrollable
+  self.bg:SetImageNormalColour(0, 0, 0, 0) -- total transparent
+  self.bg:SetImageFocusColour(0, 0, 0, 0)
+  self.bg:SetPosition(-60, 0)
+  self.bg:SetScale(1.025, 1)
+  -- OptionsScreen:RefreshControls() assumes the existence of these, add them to make it not crash.
+  self.control, self.controlId = {}, 0
+  self.changed_image = { Show = function() end, Hide = function() end }
+end)
+
 -- @tparam OptionsScreen opt_screen The OptionsScreen instance that this keybind entry is to be a child to.
 -- @tparam table config_option The entry from modinfo.configuration_options corresponding to this keybind entry.
 local function MakeKeybindControlEntry(opt_screen, config_option)
   local x = -371 -- x coord of the left edge
-  local button_width = 250
-  local button_height = 48
-  local label_width = 375
-  local spacing = 15
+  local button_width = 250 -- controls_ui.action_btn_width
+  local button_height = 48 -- controls_ui.action_height
+  local label_width = 375 -- controls_ui.action_label_width
 
   -- "kw" for "Keybind Widget"
   -- This is a reminiscient from the KeybindLib code, but "ke" is a much less unique combination, we keep it
   local kw = Widget(modname .. ":KeybindEntry")
-  kw.bg = kw:AddChild(TEMPLATES.ListItemBackground(700, button_height))
-  kw.bg:SetPosition(-60, 0)
-  kw.bg:SetScale(1.025, 1)
+  kw:SetHoverText(config_option.hover, { offset_x = -60, offset_y = 60, wordwrap = true })
   kw:SetScale(1,1,0.75)
+
+  local bg = kw:AddChild(TEMPLATES.ListItemBackground(700, button_height))
+  kw.bg = bd
+  bg:SetPosition(-60, 0)
+  bg:SetScale(1.025, 1)
 
   local label = kw:AddChild(Text(G.CHATFONT, 28))
   kw.label = label
@@ -162,13 +178,13 @@ local function MakeKeybindControlEntry(opt_screen, config_option)
   label:SetHAlign(G.ANCHOR_LEFT)
   label:SetColour(G.UICOLOURS.GOLD_UNIMPORTANT)
   label:SetRegionSize(label_width, 50)
-  x = x + label_width/2
-  label:SetPosition(x, 0)
+  label:SetPosition(x + label_width/2, 0)
   label:SetClickable(false)
 
   local keybind_setter = kw:AddChild(KeybindSetter(button_width, button_height, 30))
   kw.keybind_setter = keybind_setter
   local curr_key = ParseKeyString(GetModConfigData(config_option.name))
+  keybind_setter.title = config_option.label
   keybind_setter.default_key = ParseKeyString(config_option.default)
   keybind_setter.initial_key = curr_key
   keybind_setter:RebindTo(curr_key)
@@ -182,8 +198,7 @@ local function MakeKeybindControlEntry(opt_screen, config_option)
       end
     end
   end
-  x = x + label_width/2 + spacing + button_width/2
-  keybind_setter:SetPosition(x, 0)
+  keybind_setter:SetPosition(x + label_width + 15 + button_width/2, 0)
 
   -- OptionsScreen:RefreshControls() assumes the existence of these, add them to make it not crash
   kw.controlId = 0
@@ -199,15 +214,6 @@ end
 
 local old_OptionsScreen_Save = OptionsScreen.Save
 function OptionsScreen:Save(cb)
-  -- Generate a keybind name -> config option index lookup table
-  local keybind_name2idx = {}
-  for i, conf_opt in ipairs(modinfo.configuration_options) do
-    if conf_opt.is_keybind then
-      keybind_name2idx[conf_opt.name] = i
-    end
-  end
-
-  local config = G.KnownModIndex:LoadModConfigurationOptions(modname, true)
   for kw, new_key in pairs(_pending_changes) do
     local name = kw.keybind_name
 
@@ -219,7 +225,7 @@ function OptionsScreen:Save(cb)
     G.KnownModIndex:SetConfigurationOption(modname, name, StringifyKeycode(new_key))
   end
   _pending_changes = {}
-  G.KnownModIndex:SaveConfigurationOptions(function() end, modname, config, modinfo.client_only_mod)
+  G.KnownModIndex:SaveHostConfiguration()
 
   return old_OptionsScreen_Save(self, cb)
 end
@@ -239,22 +245,12 @@ AddClassPostConstruct("screens/redux/optionsscreen", function(self)
   -- Don't call ScrollableList:AddItem() one by one to avoid wasting time recalcuating the list size
   local clist = self.kb_controllist
   local items = clist.items
-
-  local section_title = Text(G.HEADERFONT, 30, modname)
-  section_title:SetHAlign(G.ANCHOR_MIDDLE)
-  section_title:SetColour(G.UICOLOURS.GOLD_SELECTED)
-  -- OptionsScreen:RefreshControls() assumes the existence of these, add them to make it not crash
-  section_title.controlId = 0
-  section_title.control = {}
-  section_title.changed_image = { Show = function() end, Hide = function() end }
-  table.insert(items, clist:AddChild(section_title))
-
+  table.insert(items, clist:AddChild(Header(modinfo.name)))
   for i, conf_opt in ipairs(modinfo.configuration_options) do
-    if conf_opt.is_keybind then
+    if conf_opt.options == modinfo.keys then
       table.insert(items, clist:AddChild(MakeKeybindControlEntry(self, conf_opt)))
     end
   end
-
   clist:SetList(items, true)
 end)
 
@@ -273,7 +269,8 @@ AddClassPostConstruct('screens/redux/modconfigurationscreen', function(self)
   local text_size = 25 -- screens/redux/modconfigurationscreen.lua: same as LabelSpinner's default
   local widget_name = modname .. ":KeybindButton" -- avoid being messed up by other mods
 
-  for _, widget in ipairs(self.options_scroll_list.widgets_to_update) do
+  for _, widget in ipairs(self.options_scroll_list:GetListWidgets()) do
+    local spinner = widget.opt.spinner
     -- "ks" for "Keybind Setter"
     local ks = KeybindSetter(button_width, button_height, text_size)
     ks.on_rebind = function(new_key)
@@ -284,10 +281,10 @@ AddClassPostConstruct('screens/redux/modconfigurationscreen', function(self)
       widget:ApplyDescription()
     end
     ks:Hide()
-    ks:SetPosition(widget.opt.spinner:GetPosition()) -- take original spinner's place
+    ks:SetPosition(spinner:GetPosition()) -- take original spinner's place
 
     widget.opt[widget_name] = widget.opt:AddChild(ks)
-    widget.opt.focus_forward = function() return ks.shown and ks or widget.opt.spinner end
+    widget.opt.focus_forward = function() return ks.shown and ks or spinner end
   end
 
   local OldApplyDataToWidget = self.options_scroll_list.update_fn
@@ -299,8 +296,9 @@ AddClassPostConstruct('screens/redux/modconfigurationscreen', function(self)
     for _, v in ipairs(self.config) do
       if v.name == data.option.name then
         -- Skip our logic if this config option is not a keybind
-        if not v.is_keybind then return result end
+        if v.options ~= modinfo.keys then return result end
 
+        ks.title = v.label
         ks.default_key = ParseKeyString(v.default)
         ks.initial_key = ParseKeyString(data.initial_value)
         ks:RebindTo(ParseKeyString(data.selected_value))
