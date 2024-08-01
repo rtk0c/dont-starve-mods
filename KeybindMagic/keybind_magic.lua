@@ -68,11 +68,11 @@ local KeybindSetter = Class(Widget, function(self, width, height, text_size)
   self.default_key = 0
   self.on_rebind = function() end
   
-  local changed_image = self:AddChild(Image("images/global_redux.xml", "wardrobe_spinner_bg.tex"))
-  self.changed_image = changed_image
-  changed_image:SetTint(1, 1, 1, 0.3) -- screens/redux/optionsscreen.lua: BuildControlGroup()
-  changed_image:ScaleToSize(width, height)
-  changed_image:Hide()
+  local bg = self:AddChild(Image("images/global_redux.xml", "wardrobe_spinner_bg.tex"))
+  self.bg = bg
+  bg:SetTint(1, 1, 1, 0.3) -- screens/redux/optionsscreen.lua: BuildControlGroup()
+  bg:ScaleToSize(width, height)
+  bg:Hide()
 
   local binding_btn = self:AddChild(ImageButton("images/global_redux.xml", "blank.tex", "spinner_focus.tex"))
   self.binding_btn = binding_btn
@@ -97,15 +97,12 @@ end)
 function KeybindSetter:RebindTo(new_key)
   self.binding_btn:SetText(LocalizeKeyString(new_key))
   self.on_rebind(new_key)
+  print(tostring(new_key) .. " " .. tostring(self.initial_key))
   if new_key == self.initial_key then
-    self.changed_image:Hide()
+    self.bg:Hide()
   else
-    self.changed_image:Show()
+    self.bg:Show()
   end
-end
-
-function KeybindSetter:RevertChanges()
-  self:RebindTo(self.initial_key)
 end
 
 function KeybindSetter:PopupKeyBindDialog()
@@ -153,6 +150,8 @@ local Header = Class(Widget, function(self, title)
   self.changed_image = { Show = function() end, Hide = function() end }
 end)
 
+local keybind_entry_name = modname .. ":KeybindEntry"
+
 -- @tparam OptionsScreen opt_screen The OptionsScreen instance that this keybind entry is to be a child to.
 -- @tparam table config_option The entry from modinfo.configuration_options corresponding to this keybind entry.
 local function MakeKeybindControlEntry(opt_screen, config_option)
@@ -163,7 +162,7 @@ local function MakeKeybindControlEntry(opt_screen, config_option)
 
   -- "kw" for "Keybind Widget"
   -- This is a reminiscient from the KeybindLib code, but "ke" is a much less unique combination, we keep it
-  local kw = Widget(modname .. ":KeybindEntry")
+  local kw = Widget(keybind_entry_name)
   kw:SetHoverText(config_option.hover, { offset_x = -60, offset_y = 60, wordwrap = true })
   kw:SetScale(1,1,0.75)
 
@@ -203,7 +202,7 @@ local function MakeKeybindControlEntry(opt_screen, config_option)
   -- OptionsScreen:RefreshControls() assumes the existence of these, add them to make it not crash
   kw.controlId = 0
   kw.control = {}
-  kw.changed_image = keybind_setter.changed_image
+  kw.changed_image = { Show = function() end, Hide = function() end }
 
   kw.keybind_name = config_option.name
 
@@ -233,11 +232,23 @@ end
 local old_OptionsScreen_RevertChanges = OptionsScreen.RevertChanges
 function OptionsScreen:RevertChanges()
   for kw, _ in pairs(_pending_changes) do
-    kw.keybind_setter:RevertChanges()
+    local ks = kw.keybind_setter
+    ks:RebindTo(ks.initial_key)
   end
-  _pending_changes = {}
 
   return old_OptionsScreen_RevertChanges(self)
+end
+
+local old_OptionsScreen_LoadDefaultControls = OptionsScreen.LoadDefaultControls
+function OptionsScreen:LoadDefaultControls()
+  for _, widget in ipairs(self.kb_controllist.items) do
+    if widget.name == keybind_entry_name then
+      local ks = widget.keybind_setter
+      ks:RebindTo(ks.default_key)
+    end
+  end
+
+  return old_OptionsScreen_LoadDefaultControls(self)
 end
 
 AddClassPostConstruct("screens/redux/optionsscreen", function(self)
