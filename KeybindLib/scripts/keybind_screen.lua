@@ -11,6 +11,12 @@ local PopupDialogScreen = require "screens/redux/popupdialog"
 local TEMPLATES = require "widgets/redux/templates"
 local OptionsScreen = require "screens/redux/optionsscreen"
 
+-- The same function provided to modinfo
+local function T(tbl)
+  local locale = LOC.GetLocaleCode()
+  return tbl[locale] or tbl[1]
+end
+
 local function MakeSectionHeader(title)
   local header = Widget("SectionHeader")
   header.txt = header:AddChild(Text(HEADERFONT, 30, title, UICOLOURS.GOLD_SELECTED))
@@ -272,21 +278,41 @@ function OptionsScreen:_MapKeybind(kbd_widget)
   TheFrontEnd:PushScreen(popup)
 end
 
-local old_ctor = OptionsScreen._ctor
-function OptionsScreen:_ctor(prev_screen, default_section)
-  old_ctor(self, prev_screen, default_section)
-
+local old_BuildMenu = OptionsScreen._BuildMenu
+function OptionsScreen:_BuildMenu(subscreener)
+  -- Initialize fields (as-if doing this at the end of _ctor)
   self._mapping_changes = {}
 
-  -- Insert our tab after initialization; the alternative is copy and modify the entire self:_BuildMenu() method.
-  -- Unfortunately, this forces our Mod Keybinds tab to be the first one in the list--positioning is done in Menu:AddCustomItem(), we can't control that.
+  -- Add the Mod Keybinds screen
+  local mod_keybinds_screen = self:_BuildModKeybinds()
+  subscreener.sub_screens["mod_keybinds"] = self.panel_root:AddChild(mod_keybinds_screen)
 
-  self.subscreener.sub_screens["mod_keybinds"] = self.panel_root:AddChild(self:_BuildModKeybinds())
-  self.subscreener.menu:AddCustomItem(self.subscreener:MenuButton("Mod Keybinds", "mod_keybinds", "Rebind mod keybinds", self.tooltip))
-  -- We need to call this again (old_ctor already did it) to hide the new panel added above ^^^
-  self.subscreener:OnMenuButtonSelected("settings")
-  -- Call this again (Subscreener:_ctor already did it) to include our new tab
-  self.subscreener.ordered_keys = self.subscreener:_CreatedOrderedKeyList()
+  -- Add the button that jumps to Mod Keybinds screen
+  -- See the original OptionsScreen:_BuildMenu(), addition details here:
+  --   _BuildMenu() 函数会构造一个列表，其中包含了各个标签页对应的 subscreener:MenuButton() 菜单项。函数最后把这个传给 TEMPLATES.StandardMenu()，构造屏幕左侧那个切换标签页用的菜单栏。
+  --   我们要把 mod_keybinds_button 插入到那个列表中，“控制”标签页对应的菜单项的前面（从而达到显示在它下面的效果，因为 StandardMenu 默认是反转列表顺序的）
+  --   而唯一能在构造列表后、TEMPLATES.StandardMenu() 函数执行前插入代码的方法，就是临时替换掉 StandardMenu 为要做的准备工作，再在做完后跳转回原来的 StandardMenu。
+  local old_TEMPLATES_StandardMenu = TEMPLATES.StandardMenu
+  TEMPLATES.StandardMenu = function(menuitems, offset, horizontal, style, wrap) 
+    -- Construct our button for switching to our screen
+    -- This must be called at the end of the original _BuildMenu(), because self.tooltip is initialized at its top
+    local name = T({"Mod Keybinds", zh="模组快捷键", zht="模組快捷鍵"})
+    local description = T({"Rebind custom keybinds added by mods", zh="重新绑定模组添加的自定义快捷键", zht="重新綁定模組添加的自定義快捷鍵"})
+    local mod_keybinds_button = subscreener:MenuButton(name, "mod_keybinds", description, self.tooltip)
+
+    -- Find "controls" in menuitems, and put our button before that
+    local target_text = STRINGS.UI.OPTIONS.CONTROLS
+    for i, menu_item in ipairs(menuitems) do
+      if menu_item.widget:GetText() == target_text then
+        table.insert(menuitems, i, {widget = mod_keybinds_button})
+        break
+      end
+    end
+
+    TEMPLATES.StandardMenu = old_TEMPLATES_StandardMenu
+    return old_TEMPLATES_StandardMenu(menuitems, offset, horizontal, style, wrap)
+  end
+  return old_BuildMenu(self, subscreener)
 end
 
 -- The option saving codepath is a confusing labyrinth.
