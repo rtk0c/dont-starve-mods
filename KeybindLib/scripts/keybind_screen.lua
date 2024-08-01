@@ -254,6 +254,9 @@ function OptionsScreen:_MapKeybind(kbd_widget)
     },
   })
 
+  -- Note vanilla's control PopupDialogScreen overrides OnControl was overidden to nothing,
+  -- we cannot do that here because doing so will cause clicked dialog buttons to not properly transition to pressed state.
+
   local key_capturer = function(_, key, down)
     -- Delay by 1 frame to let the dialog buttons can signal us
     -- By default, OnRawKey and OnMouseButton of this parent widget is called before the buttons are
@@ -283,12 +286,19 @@ function OptionsScreen:_BuildMenu(subscreener)
   -- Initialize fields (as-if doing this at the end of _ctor)
   self._mapping_changes = {}
 
-  -- Add the Mod Keybinds screen
+  -- Add the Mod Keybinds subscreen
+  -- The vanilla subscreens are done in _ctor() right before constructing Subscreener, which in turns calls this function as a callback.
+  -- Subscreener:_ctor inserts all of them into self.sub_screens, so we do that too.
   local mod_keybinds_screen = self:_BuildModKeybinds()
   subscreener.sub_screens["mod_keybinds"] = self.panel_root:AddChild(mod_keybinds_screen)
 
   -- Add the button that jumps to Mod Keybinds screen
   -- See the original OptionsScreen:_BuildMenu(), addition details here:
+  --   The _BuildMenu() function constructs a list, in which each subscreen gets a menu item. This list is finally passed to TEMPLATES.StandardMenu() which becomes the menu of the left side of the screen.
+  --   We need to insert mod_keybinds_button right before the menu item corresponding to "Controls". (In order to make ours be below "Controls", since StandardMenu reverses the list by default).
+  --   And the only way to execute code after constructing the list, and before TEMPLATES.StandardMenu() executes, is to temporarily replace StandardMenu to execute our code instead,
+  --   and when we're done, replace StandardMenu back and jump to it.
+  --
   --   _BuildMenu() 函数会构造一个列表，其中包含了各个标签页对应的 subscreener:MenuButton() 菜单项。函数最后把这个传给 TEMPLATES.StandardMenu()，构造屏幕左侧那个切换标签页用的菜单栏。
   --   我们要把 mod_keybinds_button 插入到那个列表中，“控制”标签页对应的菜单项的前面（从而达到显示在它下面的效果，因为 StandardMenu 默认是反转列表顺序的）
   --   而唯一能在构造列表后、TEMPLATES.StandardMenu() 函数执行前插入代码的方法，就是临时替换掉 StandardMenu 为要做的准备工作，再在做完后跳转回原来的 StandardMenu。
@@ -335,10 +345,10 @@ function OptionsScreen:Save(cb)
   return old_Save(self, cb)
 end
 
--- No-op for revert changes, just throw away self._mapping_changes is enough
+-- No-op for revert changes, all of our state is in self._mapping_changes, which is initialized as a field for every OptionsScreen object
 --[[
 local old_RevertChanges = OptionsScreen.RevertChanges
 function OptionsScreen:RevertChanges()
-  old_RevertChanges(self)
+  return old_RevertChanges(self)
 end
 --]]
