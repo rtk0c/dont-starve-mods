@@ -97,7 +97,6 @@ end)
 function KeybindSetter:RebindTo(new_key)
   self.binding_btn:SetText(LocalizeKeyString(new_key))
   self.on_rebind(new_key)
-  print(tostring(new_key) .. " " .. tostring(self.initial_key))
   if new_key == self.initial_key then
     self.bg:Hide()
   else
@@ -257,9 +256,9 @@ AddClassPostConstruct("screens/redux/optionsscreen", function(self)
   local clist = self.kb_controllist
   local items = clist.items
   table.insert(items, clist:AddChild(Header(modinfo.name)))
-  for i, conf_opt in ipairs(modinfo.configuration_options) do
-    if conf_opt.options == modinfo.keys then
-      table.insert(items, clist:AddChild(MakeKeybindControlEntry(self, conf_opt)))
+  for i, config_option in ipairs(modinfo.configuration_options) do
+    if config_option.options == modinfo.keys then
+      table.insert(items, clist:AddChild(MakeKeybindControlEntry(self, config_option)))
     end
   end
   clist:SetList(items, true)
@@ -304,13 +303,13 @@ AddClassPostConstruct('screens/redux/modconfigurationscreen', function(self)
     local ks = widget.opt[widget_name]
     if not (ks and data and not data.is_header) then return result end
 
-    for _, v in ipairs(self.config) do
-      if v.name == data.option.name then
+    for _, config_option in ipairs(self.config) do
+      if config_option.name == data.option.name then
         -- Skip our logic if this config option is not a keybind
-        if v.options ~= modinfo.keys then return result end
+        if config_option.options ~= modinfo.keys then return result end
 
-        ks.title = v.label
-        ks.default_key = ParseKeyString(v.default)
+        ks.title = config_option.label
+        ks.default_key = ParseKeyString(config_option.default)
         ks.initial_key = ParseKeyString(data.initial_value)
         ks:RebindTo(ParseKeyString(data.selected_value))
 
