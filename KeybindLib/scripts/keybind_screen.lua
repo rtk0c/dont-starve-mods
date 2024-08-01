@@ -229,6 +229,8 @@ function OptionsScreen:_MapKeybind(kbd_widget)
   local default_text = string.format(STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT,
     KeybindLib:LocalizeInputMask(kbd_widget.keybind.default_input_mask))
   local body_text = STRINGS.UI.CONTROLSSCREEN.CONTROL_SELECT .. "\n\n" .. default_text
+
+  local is_canceled = false
   local popup = PopupDialogScreen(kbd_widget.keybind.name, body_text, {
     {
       text = STRINGS.UI.CONTROLSSCREEN.CANCEL,
@@ -237,20 +239,24 @@ function OptionsScreen:_MapKeybind(kbd_widget)
       end,
     },
   })
-  popup.dialog.body:SetPosition(0, 0)
-
-  popup.OnControl = function(_, control, down) return true end
 
   local key_capturer = function(_, key, down)
-    -- Keep taking input until a non-modifier key release
-    if not down and not KeybindLib.MODIFIER_KEYS[key] then
-      local mod_mask = KeybindLib:GetModifiersMaskNow()
-      local input_mask = bit.bor(mod_mask, key)
+    -- Delay by 1 frame to let the dialog buttons can signal us
+    -- By default, OnRawKey and OnMouseButton of this parent widget is called before the buttons are
+    self.inst:DoTaskInTime(0, function()
+      -- If the cancel button is clicked, don't capture the mouse click
+      if is_canceled then return end
 
-      self:_UserChangeKeybind(kbd_widget, input_mask)
-      TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
-      TheFrontEnd:PopScreen()
-    end
+      -- Keep taking input until a non-modifier key release
+      if not down and not KeybindLib.MODIFIER_KEYS[key] then
+        local mod_mask = KeybindLib:GetModifiersMaskNow()
+        local input_mask = bit.bor(mod_mask, key)
+
+        self:_UserChangeKeybind(kbd_widget, input_mask)
+        TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
+        TheFrontEnd:PopScreen()
+      end
+    end)
   end
   popup.OnRawKey = key_capturer
   popup.OnMouseButton = key_capturer
