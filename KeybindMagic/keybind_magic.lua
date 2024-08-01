@@ -202,6 +202,9 @@ local function MakeKeybindControlEntry(opt_screen, config_option)
   kw.controlId = 0
   kw.control = {}
   kw.changed_image = { Show = function() end, Hide = function() end }
+  -- OptionsScreen:OnControlMapped()
+  -- Needed for Primary Click control (id = 0), which we use above to obtain compatbility with OptionsScreen:RefreshControls()
+  kw.binding_btn = { SetText = function() end }
 
   kw.keybind_name = config_option.name
 
