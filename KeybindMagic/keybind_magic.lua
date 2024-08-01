@@ -147,6 +147,9 @@ local Header = Class(Widget, function(self, title)
   -- OptionsScreen:RefreshControls() assumes the existence of these, add them to make it not crash.
   self.control, self.controlId = {}, 0
   self.changed_image = { Show = function() end, Hide = function() end }
+  -- OptionsScreen:OnControlMapped()
+  -- Needed for Primary Click control (id = 0), which we use above to obtain compatbility with OptionsScreen:RefreshControls()
+  self.binding_btn = { SetText = function() end }
 end)
 
 local keybind_entry_name = modname .. ":KeybindEntry"
