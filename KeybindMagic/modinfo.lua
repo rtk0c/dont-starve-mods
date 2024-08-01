@@ -38,11 +38,27 @@ for i = 1, #keys do
   }
 end
 
+-- https://github.com/liolok/BossCalendarLite/blob/master/modinfo.lua#L181
+local function Header(title)
+  return { name = T(title), options = { { description = '', data = 0 } }, default = 0 }
+end
+
 configuration_options = {
+  Header({"Basic options", zh="普通选项", zht="普通選項"}),
+  {
+    name = "basic_option_1",
+    label = T({"Basic option 1", zh="普通选项1", zht="普通選項1"}),
+    default = "foo",
+    options = {
+      { description="foo", data="foo" },
+      { description="bar", data="bar" },
+    },
+  },
+  Header({"Keybinds", zh="快捷键", zht="快捷鍵"}),
   {
     name = "my_alice",
     label = T({"Alice", zh="爱丽丝", zht="愛麗絲"}),
-    hover = "Test hover text",
+    hover = T({"Test hover text", zh="测试用详细描述", zht="測試用詳細描述"}),
     default = "KEY_F",
     -- A config option is considered a keybind if its `option` property is set to `modinfo.keys`
     options = keys,
@@ -50,13 +66,53 @@ configuration_options = {
   {
     name = "my_bob",
     label = T({"Bob", zh="鲍勃", zht="鮑勃"}),
-    hover = "Test longer longer longer longer longer longer longer longer longer longer hover text",
+    hover = T({
+      "Test longer longer longer longer longer longer longer longer longer longer hover text",
+      zh="测试用超长长长长长长长长长长长长长长长长长详细描述",
+      zht="測試用超長長長長長長長長長長長長長長長長長詳細描述",
+    }),
     default = "KEY_G",
     options = keys,
   },
   {
     name = "my_carol",
     label = T({"Carol", zh="卡罗", zht="卡羅"}),
+    default = "KEY_H",
+    options = keys,
+  },
+  {
+    name = "keybind_1",
+    label = "Dummy keybind 1",
+    default = "KEY_H",
+    options = keys,
+  },
+  {
+    name = "keybind_2",
+    label = "Dummy keybind 2",
+    default = "KEY_H",
+    options = keys,
+  },
+  {
+    name = "keybind_3",
+    label = "Dummy keybind 3",
+    default = "KEY_H",
+    options = keys,
+  },
+  {
+    name = "keybind_4",
+    label = "Dummy keybind 4",
+    default = "KEY_H",
+    options = keys,
+  },
+  {
+    name = "keybind_5",
+    label = "Dummy keybind 5",
+    default = "KEY_H",
+    options = keys,
+  },
+  {
+    name = "keybind_6",
+    label = "Dummy keybind 6",
     default = "KEY_H",
     options = keys,
   },
