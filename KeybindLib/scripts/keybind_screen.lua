@@ -11,6 +11,18 @@ local PopupDialogScreen = require "screens/redux/popupdialog"
 local TEMPLATES = require "widgets/redux/templates"
 local OptionsScreen = require "screens/redux/optionsscreen"
 
+local function MakeSectionHeader(title)
+  local header = Widget("SectionHeader")
+  header.txt = header:AddChild(Text(HEADERFONT, 30, title, UICOLOURS.GOLD_SELECTED))
+  header.txt:SetPosition(-60, 0)
+  header.bg = header:AddChild(TEMPLATES.ListItemBackground(700, 48)) -- only to be more scrollable
+  header.bg:SetImageNormalColour(0, 0, 0, 0) -- total transparent
+  header.bg:SetImageFocusColour(0, 0, 0, 0)
+  header.bg:SetPosition(-60, 0)
+  header.bg:SetScale(1.025, 1)
+  return header
+end
+
 -- Copied from OptionsScreen:_BuildControls()
 function OptionsScreen:_BuildModKeybinds()
   local screen_root = Widget("ROOT")
@@ -36,10 +48,10 @@ function OptionsScreen:_BuildModKeybinds()
   local label_width = 375
   local spacing = 15
 
-  -- Categorize keybinds by their declared modid
+  -- Categorize keybinds by their declared modname
   local keybinds_by_mod = {}
   for _, kbd in ipairs(KeybindLib.keybind_registry) do
-    local mod_key = kbd.modid and kbd.modid or "<unknown>"
+    local mod_key = kbd.modname and kbd.modname or "<unknown>"
     local mod_keybinds = keybinds_by_mod[mod_key]
     if not mod_keybinds then
       mod_keybinds = {}
@@ -51,13 +63,13 @@ function OptionsScreen:_BuildModKeybinds()
 
   -- Sort mod's section alphabetically
   local keybinds_sections = {}
-  for modid, mod_keybinds in pairs(keybinds_by_mod) do
+  for modname, mod_keybinds in pairs(keybinds_by_mod) do
     -- Sort keybinds within each mod's section alphabetically
     table.sort(mod_keybinds, function(a, b) return a.name < b.name end)
 
     table.insert(keybinds_sections, {
-      modid = modid,
-      modname = KnownModIndex:GetModFancyName(modid),
+      modname = modname,
+      modname = KnownModIndex:GetModFancyName(modname),
       keybinds = mod_keybinds,
     })
   end
@@ -102,18 +114,14 @@ function OptionsScreen:_BuildModKeybinds()
 
   -- Create list widgets for sections and keybinds
   for _, section in ipairs(keybinds_sections) do
-    local modid = section.modid
+    local modname = section.modname
     local modname = section.modname
 
-    local section_title = Text(HEADERFONT, 30, modname)
-    section_title:SetHAlign(ANCHOR_MIDDLE)
-    section_title:SetColour(UICOLOURS.GOLD_SELECTED)
-
-    table.insert(widgets, section_title)
+    table.insert(widgets, MakeSectionHeader(modname))
 
     for _, kbd in ipairs(section.keybinds) do
       -- "Keybind Widget"
-      local kw = Widget(modid .. ":" .. kbd.id)
+      local kw = Widget(modname .. ":" .. kbd.id)
       kw.bg = kw:AddChild(TEMPLATES.ListItemBackground(700, button_height))
       kw.bg:SetPosition(-60,0)
       kw.bg:SetScale(1.025, 1)
@@ -226,9 +234,9 @@ function OptionsScreen:_UnmapKeybind(kbd_widget)
 end
 
 function OptionsScreen:_MapKeybind(kbd_widget)
-  local default_text = string.format(STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT,
-    KeybindLib:LocalizeInputMask(kbd_widget.keybind.default_input_mask))
-  local body_text = STRINGS.UI.CONTROLSSCREEN.CONTROL_SELECT .. "\n\n" .. default_text
+  local body_text = STRINGS.UI.CONTROLSSCREEN.CONTROL_SELECT
+    .. "\n\n"
+    .. string.format(STRINGS.UI.CONTROLSSCREEN.DEFAULT_CONTROL_TEXT, KeybindLib:LocalizeInputMask(kbd_widget.keybind.default_input_mask))
 
   local is_canceled = false
   local popup = PopupDialogScreen(kbd_widget.keybind.name, body_text, {
