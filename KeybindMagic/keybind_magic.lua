@@ -7,7 +7,7 @@
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software to use, copy, modify, merge, publish, distribute without
 -- limitation, subject to the following conditions:
--- 
+--
 -- The above permission and source notice shall be included in all copies or
 -- substantial portions of the Software.
 
@@ -67,7 +67,7 @@ local KeybindSetter = Class(Widget, function(self, width, height, text_size)
   self.initial_key = 0
   self.default_key = 0
   self.on_rebind = function() end
-  
+
   local bg = self:AddChild(Image("images/global_redux.xml", "wardrobe_spinner_bg.tex"))
   self.bg = bg
   bg:SetTint(1, 1, 1, 0.3) -- screens/redux/optionsscreen.lua: BuildControlGroup()
@@ -223,13 +223,11 @@ function OptionsScreen:Save(cb)
 
     -- Notify the mod of a keybind change
     KEYBIND_MAGIC.on_keybind_changed(name, new_key)
-    -- Note we don't pass in `config` here, because
-    -- KnownModIndex maintains an internal reference to the current mod configuration table, which is returned by LoadModConfigurationOptions()
-    -- (same as `config`)
+    -- Save new keybind to mod config file
     G.KnownModIndex:SetConfigurationOption(modname, name, StringifyKeycode(new_key))
   end
   _pending_changes = {}
-  G.KnownModIndex:SaveHostConfiguration()
+  G.KnownModIndex:SaveHostConfiguration(modname)
 
   return old_OptionsScreen_Save(self, cb)
 end
