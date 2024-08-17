@@ -1,4 +1,5 @@
 # KeybindMagic
+English | [中文](./README.zh.md)
 
 KeybindMagic is a single-file, vendorable utility for adding keybinds that are easily user-rebindable. Keybinds will appaer both in Options > Controls and in Mods > \[your mod\] > Configuration Options. The config options spinner will be automatically replaced with one similar to the one found in Options.
 
