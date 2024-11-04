@@ -50,6 +50,11 @@ local keybind_methods = {
       new_hooks[self] = true -- Dummy value, we just want to use it as a hashset
     end
   end,
+  IsPressed = function(self)
+    local mods_mask = bit.band(self._input_mask, 0xFFFF0000)
+    local keycode = bit.band(self._input_mask, 0xFFFF)
+    return KeybindLib:GetModifiersMaskNow() == mods_mask and TheInput:IsKeyDown(keycode)
+  end,
 }
 local keybind_metatable = {
   -- Don't provide a __newindex, if users want to insert extra keys, just let it stay local to the keybind object
@@ -126,6 +131,8 @@ function KeybindLib:RegisterKeybind(keybind)
   reg[full_id] = keybind
   -- Register for ordered iteration
   reg[keybind.index] = keybind
+
+  return keybind
 end
 
 -------
