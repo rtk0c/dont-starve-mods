@@ -91,7 +91,8 @@ end
 -- @param keybind The keybind object.
 -- @tparam string keybind.id An unique identifier for this keybind.
 -- @tparam string keybind.modname Your mod's `modname` as registered in `KnownModIndex`. You can retrieve by calling `KnownModIndex:GetModActualName(modinfo.name)`.
--- @tparam string keybind.name A human-readable (and preferrably localized) name for this keybind. For dispaly in UI.
+-- @tparam string keybind.name A human-readable (and preferrably localized) name for this keybind. For display in UI.
+-- @tparam[opt] string keybind.category A human-redable (and preferrably localized) category for this keybind. All keybinds with the same category are grouped together in UI. If nil, uses `keybind.modname`.
 -- @tparam[opt] string keybind.default_mapping The default mapping, in the Keychord Format. See `KeybindLib:InputMaskToString` and `KeybindLib:InputMaskFromString`.
 -- @tparam[opt] func keybind.callback Function to be called when the keybind is triggered. If nil, nothing happens when the keychord is pressed.
 function KeybindLib:RegisterKeybind(keybind)

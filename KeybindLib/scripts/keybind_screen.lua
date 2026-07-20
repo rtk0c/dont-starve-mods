@@ -55,13 +55,13 @@ function OptionsScreen:_BuildModKeybinds()
   local spacing = 15
 
   -- Categorize keybinds by their declared modname
-  local keybinds_by_mod = {}
+  local keybinds_by_category = {}
   for _, kbd in ipairs(KeybindLib.keybind_registry) do
-    local mod_key = kbd.modname and kbd.modname or "<unknown>"
-    local mod_keybinds = keybinds_by_mod[mod_key]
+    local mod_key = kbd.category or kbd.modname or "<unknown>"
+    local mod_keybinds = keybinds_by_category[mod_key]
     if not mod_keybinds then
       mod_keybinds = {}
-      keybinds_by_mod[mod_key] = mod_keybinds
+      keybinds_by_category[mod_key] = mod_keybinds
     end
 
     table.insert(mod_keybinds, kbd)
@@ -69,7 +69,7 @@ function OptionsScreen:_BuildModKeybinds()
 
   -- Sort mod's section alphabetically
   local keybinds_sections = {}
-  for modname, mod_keybinds in pairs(keybinds_by_mod) do
+  for modname, mod_keybinds in pairs(keybinds_by_category) do
     -- Sort keybinds within each mod's section alphabetically
     table.sort(mod_keybinds, function(a, b) return a.name < b.name end)
 
